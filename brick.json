@@ -16,6 +16,7 @@
     "clay-stdlib/clay-event": "github.com/mseminatore/clay-stdlib/clay-event",
     "clay-stdlib/clay-path": "github.com/mseminatore/clay-stdlib/clay-path",
     "clay-stdlib/clay-args": "github.com/mseminatore/clay-stdlib/clay-args",
-    "clay-stdlib/clay-template": "github.com/mseminatore/clay-stdlib/clay-template"
+    "clay-stdlib/clay-template": "github.com/mseminatore/clay-stdlib/clay-template",
+    "clay-stdlib/clay-http-server": "github.com/mseminatore/clay-stdlib/clay-http-server"
   }
 }

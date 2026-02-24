@@ -1,0 +1,95 @@
+// clay-http-server -- Simple HTTP server with routing
+//
+// Usage:
+//   import("clay-stdlib/clay-http-server")
+//
+//   server = HttpServer new(8080)
+//   server get("/", { |req| server html(200, "<h1>Hello!</h1>") })
+//   server get("/api/time", { |req| server json(200, Date now() toString()) })
+//   server start()
+
+HttpServer = Object clone {
+    _port = 8080
+    _routes = nil
+
+    new(port) {
+        s = self clone
+        s _port = port
+        s _routes = Array new()
+        s
+    }
+
+    get(path, handler) {
+        route = Object clone {}
+        route _method = "GET"
+        route _path = path
+        route _handler = handler
+        _routes push(route)
+        self
+    }
+
+    post(path, handler) {
+        route = Object clone {}
+        route _method = "POST"
+        route _path = path
+        route _handler = handler
+        _routes push(route)
+        self
+    }
+
+    put(path, handler) {
+        route = Object clone {}
+        route _method = "PUT"
+        route _path = path
+        route _handler = handler
+        _routes push(route)
+        self
+    }
+
+    delete(path, handler) {
+        route = Object clone {}
+        route _method = "DELETE"
+        route _path = path
+        route _handler = handler
+        _routes push(route)
+        self
+    }
+
+    // Response helpers
+    text(status, body) {
+        Http response(status, body)
+    }
+
+    html(status, body) {
+        resp = Http response(status, body)
+        resp _content_type = "text/html"
+        resp
+    }
+
+    json(status, body) {
+        Http jsonResponse(status, body)
+    }
+
+    // Start the server (blocking)
+    start() {
+        routes = _routes
+        Http serve(_port, { |req|
+            method = req method()
+            path = req path()
+            matched = nil
+
+            routes each { |route|
+                (route _method == method && route _path == path) ifTrue {
+                    (matched == nil) ifTrue {
+                        matched = route _handler value(req)
+                    }
+                }
+            }
+
+            (matched == nil) ifTrue {
+                matched = Http response(404, "Not Found")
+            }
+            matched
+        })
+    }
+}
