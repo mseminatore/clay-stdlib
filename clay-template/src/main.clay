@@ -13,9 +13,11 @@
 Template = Object clone {
     render(tmpl, data) {
         result = tmpl
-        data each { |key, value|
-            placeholder = "{{" + key + "}}"
-            result = result replace(placeholder, value toString())
+        (data != nil) ifTrue {
+            data each { |key, value|
+                placeholder = "{{" + key + "}}"
+                result = result replace(placeholder, value toString())
+            }
         }
         result
     }
