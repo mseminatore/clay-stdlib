@@ -70,6 +70,16 @@ HttpServer = Object clone {
         Http jsonResponse(status, body)
     }
 
+    redirect(url) {
+        resp = Http response(302, "")
+        resp _location = url
+        resp
+    }
+
+    formData(req) {
+        Http parseForm(req body())
+    }
+
     // Start the server (blocking)
     start() {
         routes = _routes

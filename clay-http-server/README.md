@@ -45,6 +45,8 @@ server start()
 | `text(status, body)` | Plain text response |
 | `html(status, body)` | HTML response |
 | `json(status, body)` | JSON response |
+| `redirect(url)` | 302 redirect response |
+| `formData(req)` | Parse URL-encoded POST body into Dict |
 
 ### Request Object
 
