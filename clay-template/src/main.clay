@@ -22,11 +22,11 @@ Template = Object clone {
         result
     }
 
-    renderEach(tmpl, items) {
-        // Render template for each item in array, returns joined string
+    renderEach(tmpl, items, sep) {
         results = items map { |item|
             self render(tmpl, item)
         }
-        results join("")
+        (sep == nil) ifTrue { sep = "" }
+        results join(sep)
     }
 }
