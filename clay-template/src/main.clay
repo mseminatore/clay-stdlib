@@ -1,0 +1,30 @@
+// clay-template -- Simple string template engine
+//
+// Usage:
+//   import("clay-template")
+//
+//   data = Dict new()
+//   data set("name", "World")
+//   data set("count", 3)
+//
+//   Template render("Hello, {{name}}! You have {{count}} items.", data)
+//   // => "Hello, World! You have 3 items."
+
+Template = Object clone {
+    render(tmpl, data) {
+        result = tmpl
+        data each({ |key, value|
+            placeholder = "{{" + key + "}}"
+            result = result replace(placeholder, value toString())
+        })
+        result
+    }
+
+    renderEach(tmpl, items) {
+        // Render template for each item in array, returns joined string
+        results = items map({ |item|
+            self render(tmpl, item)
+        })
+        results join("")
+    }
+}

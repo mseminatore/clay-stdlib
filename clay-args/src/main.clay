@@ -1,0 +1,107 @@
+// clay-args -- CLI argument parsing
+//
+// Usage:
+//   import("clay-args")
+//
+//   parser = ArgParser new("myapp", "A sample application")
+//   parser flag("verbose", "v", "Enable verbose output")
+//   parser option("output", "o", "Output file", "out.txt")
+//   result = parser parse(System args())
+//
+//   result get("verbose")   // true/false
+//   result get("output")    // "out.txt" or user value
+//   result positional()     // remaining args
+
+ArgParser = Object clone {
+    _name = ""
+    _desc = ""
+    _flags = nil
+    _options = nil
+
+    new(name, desc) {
+        p = self clone
+        p _name = name
+        p _desc = desc
+        p _flags = Array new()
+        p _options = Array new()
+        p
+    }
+
+    flag(name, short, help) {
+        entry = Dict new()
+        entry set("name", name)
+        entry set("short", short)
+        entry set("help", help)
+        entry set("type", "flag")
+        _flags push(entry)
+        self
+    }
+
+    option(name, short, help, default) {
+        entry = Dict new()
+        entry set("name", name)
+        entry set("short", short)
+        entry set("help", help)
+        entry set("default", default)
+        entry set("type", "option")
+        _options push(entry)
+        self
+    }
+
+    parse(args) {
+        result = Dict new()
+        positional = Array new()
+
+        // Set defaults
+        _flags each({ |f| result set(f get("name"), false) })
+        _options each({ |o| result set(o get("name"), o get("default")) })
+
+        i = 0
+        { i < args size() } whileTrue({
+            arg = args at(i)
+            matched = false
+
+            // Check flags
+            _flags each({ |f|
+                ((arg == ("--" + f get("name"))) || (arg == ("-" + f get("short")))) ifTrue({
+                    result set(f get("name"), true)
+                    matched = true
+                })
+            })
+
+            // Check options
+            (matched == false) ifTrue({
+                _options each({ |o|
+                    ((arg == ("--" + o get("name"))) || (arg == ("-" + o get("short")))) ifTrue({
+                        (i + 1 < args size()) ifTrue({
+                            i = i + 1
+                            result set(o get("name"), args at(i))
+                            matched = true
+                        })
+                    })
+                })
+            })
+
+            // Positional
+            (matched == false) ifTrue({
+                positional push(arg)
+            })
+
+            i = i + 1
+        })
+
+        result set("_positional", positional)
+        result
+    }
+
+    usage() {
+        (_name + " - " + _desc) println()
+        "Options:" println()
+        _flags each({ |f|
+            ("  --" + f get("name") + ", -" + f get("short") + "  " + f get("help")) println()
+        })
+        _options each({ |o|
+            ("  --" + o get("name") + ", -" + o get("short") + " <value>  " + o get("help") + " (default: " + o get("default") toString() + ")") println()
+        })
+    }
+}

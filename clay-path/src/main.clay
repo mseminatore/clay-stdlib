@@ -1,0 +1,83 @@
+// clay-path -- Path manipulation utilities
+//
+// Usage:
+//   import("clay-path")
+//
+//   Path join("src", "main.clay")     // "src/main.clay"
+//   Path dirname("/usr/bin/clay")     // "/usr/bin"
+//   Path basename("/usr/bin/clay")    // "clay"
+//   Path extension("file.clay")       // ".clay"
+//   Path stem("file.clay")            // "file"
+
+Path = Object clone {
+    _sep = "/"
+
+    sep() { _sep }
+
+    join(parts) {
+        // Join array of path segments with separator
+        result = ""
+        first = true
+        parts each({ |p|
+            (first == true) ifTrue({
+                result = p
+                first = false
+            }) ifFalse({
+                result = result + _sep + p
+            })
+        })
+        result
+    }
+
+    dirname(path) {
+        idx = self _lastSep(path)
+        (idx < 0) ifTrue({ "." }) ifFalse({
+            (idx == 0) ifTrue({ _sep }) ifFalse({ path slice(0, idx) })
+        })
+    }
+
+    basename(path) {
+        idx = self _lastSep(path)
+        (idx < 0) ifTrue({ path }) ifFalse({ path slice(idx + 1, path length()) })
+    }
+
+    extension(path) {
+        base = self basename(path)
+        i = base length() - 1
+        found = -1
+        { i >= 0 } whileTrue({
+            (base at(i) == ".") ifTrue({
+                found = i
+                i = -1
+            }) ifFalse({
+                i = i - 1
+            })
+        })
+        (found <= 0) ifTrue({ "" }) ifFalse({
+            base slice(found, base length())
+        })
+    }
+
+    stem(path) {
+        base = self basename(path)
+        ext = self extension(path)
+        (ext length() == 0) ifTrue({ base }) ifFalse({
+            base slice(0, base length() - ext length())
+        })
+    }
+
+    _lastSep(path) {
+        i = path length() - 1
+        found = -1
+        { i >= 0 } whileTrue({
+            ch = path at(i)
+            ((ch == "/") || (ch == "\\")) ifTrue({
+                found = i
+                i = -1
+            }) ifFalse({
+                i = i - 1
+            })
+        })
+        found
+    }
+}

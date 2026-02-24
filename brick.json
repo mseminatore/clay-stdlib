@@ -13,6 +13,9 @@
     "clay-stdlib/clay-json": "github.com/mseminatore/clay-stdlib/clay-json",
     "clay-stdlib/clay-csv": "github.com/mseminatore/clay-stdlib/clay-csv",
     "clay-stdlib/clay-log": "github.com/mseminatore/clay-stdlib/clay-log",
-    "clay-stdlib/clay-event": "github.com/mseminatore/clay-stdlib/clay-event"
+    "clay-stdlib/clay-event": "github.com/mseminatore/clay-stdlib/clay-event",
+    "clay-stdlib/clay-path": "github.com/mseminatore/clay-stdlib/clay-path",
+    "clay-stdlib/clay-args": "github.com/mseminatore/clay-stdlib/clay-args",
+    "clay-stdlib/clay-template": "github.com/mseminatore/clay-stdlib/clay-template"
   }
 }
