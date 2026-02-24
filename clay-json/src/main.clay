@@ -28,12 +28,12 @@ Json = Object clone {
 
     _encode(val) {
         t = val type()
-        (t == "Nil") ifTrue({ self _result = "null" })
-        (t == "Number") ifTrue({ self _result = val toString() })
-        (t == "Boolean") ifTrue({ self _result = val toString() })
-        (t == "String") ifTrue({ self _result = self _encodeString(val) })
-        (t == "Array") ifTrue({ self _result = self _encodeArray(val) })
-        (t == "Dict") ifTrue({ self _result = self _encodeDict(val) })
+        (t == "Nil") ifTrue { self _result = "null" }
+        (t == "Number") ifTrue { self _result = val toString() }
+        (t == "Boolean") ifTrue { self _result = val toString() }
+        (t == "String") ifTrue { self _result = self _encodeString(val) }
+        (t == "Array") ifTrue { self _result = self _encodeArray(val) }
+        (t == "Dict") ifTrue { self _result = self _encodeDict(val) }
         _result
     }
 
@@ -45,17 +45,17 @@ Json = Object clone {
 
     _encodeArray(arr) {
         parts = []
-        arr each({ |item|
+        arr each { |item|
             parts append(self _encode(item))
-        })
+        }
         "[" + parts join(", ") + "]"
     }
 
     _encodeDict(dict) {
         parts = []
-        dict keys() each({ |k|
+        dict keys() each { |k|
             parts append(self _encodeString(k) + ": " + self _encode(dict get(k)))
-        })
+        }
         "{" + parts join(", ") + "}"
     }
 
@@ -68,45 +68,45 @@ Json = Object clone {
     _pretty(val, depth) {
         t = val type()
         self _result = self _encode(val)
-        (t == "Dict") ifTrue({ self _result = self _prettyDict(val, depth) })
-        (t == "Array") ifTrue({ self _result = self _prettyArray(val, depth) })
+        (t == "Dict") ifTrue { self _result = self _prettyDict(val, depth) }
+        (t == "Array") ifTrue { self _result = self _prettyArray(val, depth) }
         _result
     }
 
     _indent(depth) {
         result = ""
         i = 0
-        { i < depth } whileTrue({
+        { i < depth } whileTrue {
             result = result + "  "
             i = i + 1
-        })
+        }
         result
     }
 
     _prettyDict(dict, depth) {
         keys = dict keys()
         result = "{}"
-        (keys size() > 0) ifTrue({
+        (keys size() > 0) ifTrue {
             parts = []
             pad = self _indent(depth + 1)
-            keys each({ |k|
+            keys each { |k|
                 parts append(pad + self _encodeString(k) + ": " + self _pretty(dict get(k), depth + 1))
-            })
+            }
             result = "{\n" + parts join(",\n") + "\n" + self _indent(depth) + "}"
-        })
+        }
         result
     }
 
     _prettyArray(arr, depth) {
         result = "[]"
-        (arr size() > 0) ifTrue({
+        (arr size() > 0) ifTrue {
             parts = []
             pad = self _indent(depth + 1)
-            arr each({ |item|
+            arr each { |item|
                 parts append(pad + self _pretty(item, depth + 1))
-            })
+            }
             result = "[\n" + parts join(",\n") + "\n" + self _indent(depth) + "]"
-        })
+        }
         result
     }
 
@@ -123,7 +123,7 @@ Json = Object clone {
 
     _peek() {
         self _ch = ""
-        (_pos < _len) ifTrue({ self _ch = _src at(_pos) })
+        (_pos < _len) ifTrue { self _ch = _src at(_pos) }
         _ch
     }
 
@@ -141,49 +141,49 @@ Json = Object clone {
         self _skipWs()
         self _ch = self _peek()
         self _result = nil
-        (_ch == "\"") ifTrue({ self _result = self _parseString() })
-        (_ch == "{" && _result == nil) ifTrue({ self _result = self _parseObject() })
-        (_ch == "[" && _result == nil) ifTrue({ self _result = self _parseArray() })
-        (_ch == "t" && _result == nil) ifTrue({ self _result = self _parseLiteral("true", true) })
-        (_ch == "f" && _result == nil) ifTrue({ self _result = self _parseLiteral("false", false) })
-        (_ch == "n" && _result == nil) ifTrue({ self _result = self _parseLiteral("null", nil) })
-        (("0123456789-" contains(_ch)) && _result == nil) ifTrue({
+        (_ch == "\"") ifTrue { self _result = self _parseString() }
+        (_ch == "{" && _result == nil) ifTrue { self _result = self _parseObject() }
+        (_ch == "[" && _result == nil) ifTrue { self _result = self _parseArray() }
+        (_ch == "t" && _result == nil) ifTrue { self _result = self _parseLiteral("true", true) }
+        (_ch == "f" && _result == nil) ifTrue { self _result = self _parseLiteral("false", false) }
+        (_ch == "n" && _result == nil) ifTrue { self _result = self _parseLiteral("null", nil) }
+        (("0123456789-" contains(_ch)) && _result == nil) ifTrue {
             self _result = self _parseNumber()
-        })
+        }
         _result
     }
 
     _skipWs() {
         self _done = false
-        { _done == false && _pos < _len } whileTrue({
+        { _done == false && _pos < _len } whileTrue {
             self _ch = _src at(_pos)
-            (_ch == " " || _ch == "\n" || _ch == "\r" || _ch == "\t") ifTrue({
+            (_ch == " " || _ch == "\n" || _ch == "\r" || _ch == "\t") ifTrue {
                 self _pos = _pos + 1
-            })
-            (!(_ch == " " || _ch == "\n" || _ch == "\r" || _ch == "\t")) ifTrue({
+            }
+            (!(_ch == " " || _ch == "\n" || _ch == "\r" || _ch == "\t")) ifTrue {
                 self _done = true
-            })
-        })
+            }
+        }
     }
 
     _parseString() {
         self _advance()  // skip opening "
         self _result = ""
         self _done = false
-        { _done == false && _pos < _len } whileTrue({
+        { _done == false && _pos < _len } whileTrue {
             self _ch = self _advance()
-            (_ch == "\"") ifTrue({ self _done = true })
-            (_ch != "\"" && _ch == "\\") ifTrue({
+            (_ch == "\"") ifTrue { self _done = true }
+            (_ch != "\"" && _ch == "\\") ifTrue {
                 self _ch = self _advance()
-                (_ch == "n") ifTrue({ self _ch = "\n" })
-                (_ch == "t") ifTrue({ self _ch = "\t" })
-                (_ch == "r") ifTrue({ self _ch = "\r" })
+                (_ch == "n") ifTrue { self _ch = "\n" }
+                (_ch == "t") ifTrue { self _ch = "\t" }
+                (_ch == "r") ifTrue { self _ch = "\r" }
                 self _result = _result + _ch
-            })
-            (_ch != "\"" && _ch != "\\") ifTrue({
+            }
+            (_ch != "\"" && _ch != "\\") ifTrue {
                 self _result = _result + _ch
-            })
-        })
+            }
+        }
         _result
     }
 
@@ -191,25 +191,25 @@ Json = Object clone {
         _start = _pos
         _isFloat = false
         _digits = "0123456789"
-        (self _peek() == "-") ifTrue({ self _pos = _pos + 1 })
+        (self _peek() == "-") ifTrue { self _pos = _pos + 1 }
         self _done = false
-        { _done == false && _pos < _len } whileTrue({
+        { _done == false && _pos < _len } whileTrue {
             self _ch = _src at(_pos)
-            (_digits contains(_ch)) ifTrue({ self _pos = _pos + 1 })
-            (!(_digits contains(_ch)) && _ch == "." && _isFloat == false) ifTrue({
+            (_digits contains(_ch)) ifTrue { self _pos = _pos + 1 }
+            (!(_digits contains(_ch)) && _ch == "." && _isFloat == false) ifTrue {
                 _isFloat = true
                 self _pos = _pos + 1
-            })
-            (!(_digits contains(_ch)) && _ch != ".") ifTrue({
+            }
+            (!(_digits contains(_ch)) && _ch != ".") ifTrue {
                 self _done = true
-            })
-            (!(_digits contains(_ch)) && _ch == "." && _isFloat == true) ifTrue({
+            }
+            (!(_digits contains(_ch)) && _ch == "." && _isFloat == true) ifTrue {
                 self _done = true
-            })
-        })
+            }
+        }
         _numStr = _src slice(_start, _pos)
         self _result = _numStr toInt()
-        (_isFloat == true) ifTrue({ self _result = _numStr toFloat() })
+        (_isFloat == true) ifTrue { self _result = _numStr toFloat() }
         _result
     }
 
@@ -220,15 +220,15 @@ Json = Object clone {
 
     _fillArray(arr) {
         self _skipWs()
-        (self _peek() != "]") ifTrue({
+        (self _peek() != "]") ifTrue {
             arr append(self _parseValue())
             self _skipWs()
-            { self _peek() == "," } whileTrue({
+            { self _peek() == "," } whileTrue {
                 self _advance()  // skip ,
                 arr append(self _parseValue())
                 self _skipWs()
-            })
-        })
+            }
+        }
         self _advance()  // skip ]
         arr
     }
@@ -240,15 +240,15 @@ Json = Object clone {
 
     _fillObject(dict) {
         self _skipWs()
-        (self _peek() != "}") ifTrue({
+        (self _peek() != "}") ifTrue {
             self _addKV(dict)
             self _skipWs()
-            { self _peek() == "," } whileTrue({
+            { self _peek() == "," } whileTrue {
                 self _advance()  // skip ,
                 self _addKV(dict)
                 self _skipWs()
-            })
-        })
+            }
+        }
         self _advance()  // skip }
         dict
     }

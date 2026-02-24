@@ -14,83 +14,83 @@
 Fmt = Object clone {
     padLeft(str, width) {
         s = str toString()
-        { s length < width } whileTrue({
+        { s length < width } whileTrue {
             s = " " + s
-        })
+        }
         s
     }
 
     padLeftWith(str, width, ch) {
         s = str toString()
-        { s length < width } whileTrue({
+        { s length < width } whileTrue {
             s = ch + s
-        })
+        }
         s
     }
 
     padRight(str, width) {
         s = str toString()
-        { s length < width } whileTrue({
+        { s length < width } whileTrue {
             s = s + " "
-        })
+        }
         s
     }
 
     padRightWith(str, width, ch) {
         s = str toString()
-        { s length < width } whileTrue({
+        { s length < width } whileTrue {
             s = s + ch
-        })
+        }
         s
     }
 
     center(str, width) {
         s = str toString()
         toggle = true
-        { s length < width } whileTrue({
-            (toggle == true) ifTrue({
+        { s length < width } whileTrue {
+            (toggle == true) ifTrue {
                 s = " " + s
-            }) ifFalse({
+            } ifFalse {
                 s = s + " "
-            })
+            }
             toggle = (toggle == false)
-        })
+        }
         s
     }
 
     repeat(str, n) {
         result = ""
         i = 0
-        { i < n } whileTrue({
+        { i < n } whileTrue {
             result = result + str
             i += 1
-        })
+        }
         result
     }
 
     capitalize(str) {
-        (str length > 0) ifTrue({
+        (str length > 0) ifTrue {
             str at(0) upper + str slice(1, str length)
-        }) ifFalse({
+        } ifFalse {
             str
-        })
+        }
     }
 
     titleCase(str) {
         words = str split(" ")
         result = []
-        words each({ |w|
+        words each { |w|
             result append(self capitalize(w))
-        })
+        }
         result join(" ")
     }
 
     truncate(str, maxLen) {
-        (str length > maxLen) ifTrue({
+        (str length > maxLen) ifTrue {
             str slice(0, maxLen - 3) + "..."
-        }) ifFalse({
+        } ifFalse {
             str
-        })
+        }
     }
 
     join(arr, sep) {
@@ -104,10 +104,10 @@ Fmt = Object clone {
     chars(str) {
         result = []
         i = 0
-        { i < str length } whileTrue({
+        { i < str length } whileTrue {
             result append(str at(i))
             i += 1
-        })
+        }
         result
     }
 
@@ -117,9 +117,9 @@ Fmt = Object clone {
 
     replaceAll(str, old, new) {
         result = str
-        { result contains(old) } whileTrue({
+        { result contains(old) } whileTrue {
             result = result replace(old, new)
-        })
+        }
         result
     }
 
@@ -127,25 +127,25 @@ Fmt = Object clone {
         words = str split(" ")
         lines = []
         current = ""
-        words each({ |w|
+        words each { |w|
             test = current
-            (current length > 0) ifTrue({
+            (current length > 0) ifTrue {
                 test = current + " " + w
-            }) ifFalse({
+            } ifFalse {
                 test = w
-            })
-            (test length > width) ifTrue({
-                (current length > 0) ifTrue({
+            }
+            (test length > width) ifTrue {
+                (current length > 0) ifTrue {
                     lines append(current)
-                })
+                }
                 current = w
-            }) ifFalse({
+            } ifFalse {
                 current = test
-            })
-        })
-        (current length > 0) ifTrue({
+            }
+        }
+        (current length > 0) ifTrue {
             lines append(current)
-        })
+        }
         lines join("\n")
     }
 }

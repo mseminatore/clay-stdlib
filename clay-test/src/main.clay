@@ -32,62 +32,62 @@ Test = Object clone {
     }
 
     it(name, block) {
-        result = try({
+        result = try {
             block value()
             "pass"
-        }) catch({ |e|
+        } catch { |e|
             self _failed += 1
             self _errors = _errors + "    " + _red + "FAIL: " + _suite + " > " + name + " - " + e message() + _reset + "\n"
             "fail"
-        })
-        (result == "pass") ifTrue({
+        }
+        (result == "pass") ifTrue {
             self _passed += 1
             ("    " + _green + "✓" + _reset + _dim + " " + name + _reset) println()
-        })
-        (result == "fail") ifTrue({
+        }
+        (result == "fail") ifTrue {
             ("    " + _red + "✗ " + name + _reset) println()
-        })
+        }
         self
     }
 
     assertEqual(actual, expected) {
-        (actual == expected) ifFalse({
+        (actual == expected) ifFalse {
             raise("expected " + expected + " but got " + actual)
-        })
+        }
         self
     }
 
     assertNotEqual(actual, expected) {
-        (actual == expected) ifTrue({
+        (actual == expected) ifTrue {
             raise("expected values to differ but both are " + actual)
-        })
+        }
         self
     }
 
     assertTrue(value) {
-        (value == false) ifTrue({
+        (value == false) ifTrue {
             raise("expected true but got false")
-        })
+        }
         self
     }
 
     assertFalse(value) {
-        (value == true) ifTrue({
+        (value == true) ifTrue {
             raise("expected false but got true")
-        })
+        }
         self
     }
 
     assertRaises(block) {
-        caught = try({
+        caught = try {
             block value()
             "no error"
-        }) catch({ |e|
+        } catch { |e|
             "caught"
-        })
-        (caught == "no error") ifTrue({
+        }
+        (caught == "no error") ifTrue {
             raise("expected an error but none was raised")
-        })
+        }
         self
     }
 
@@ -95,13 +95,13 @@ Test = Object clone {
         "" println()
         total = _passed + _failed
         color = _green
-        (_failed > 0) ifTrue({ color = _red })
+        (_failed > 0) ifTrue { color = _red }
         (color + "" + total + " tests, " + _passed + " passed, " + _failed + " failed" + _reset) println()
-        (_failed > 0) ifTrue({
+        (_failed > 0) ifTrue {
             "" println()
             (_red + "Failures:" + _reset) println()
             _errors print()
-        })
+        }
         self
     }
 }

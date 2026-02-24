@@ -3,7 +3,7 @@
 // Usage:
 //   import("clay-iter")
 //
-//   Iter from([1,2,3,4,5]) map({ |x| x * 2 }) filter({ |x| x > 4 }) toArray()
+//   Iter from([1,2,3,4,5]) map { |x| x * 2 } filter { |x| x > 4 } toArray()
 //   // => [6, 8, 10]
 //
 //   Iter range(1, 5) toArray()
@@ -26,10 +26,10 @@ Iter = Object clone {
     range(start, end) {
         _arr = []
         _i = start
-        { _i < end } whileTrue({
+        { _i < end } whileTrue {
             _arr append(_i)
             _i = _i + 1
-        })
+        }
         _it = self clone()
         _it _items = _arr
         _it _ops = []
@@ -38,7 +38,7 @@ Iter = Object clone {
 
     _copyOps() {
         _new = []
-        _ops each({ |op| _new append(op) })
+        _ops each { |op| _new append(op) }
         _new
     }
 
@@ -81,48 +81,48 @@ Iter = Object clone {
     _evaluate(result) {
         _src = _items
         // Apply ops one at a time
-        _ops each({ |op|
+        _ops each { |op|
             _type = op at(0)
             _arg = op at(1)
-            (_type == "map") ifTrue({
+            (_type == "map") ifTrue {
                 _next = []
-                _src each({ |item| _next append(_arg value(item)) })
+                _src each { |item| _next append(_arg value(item)) }
                 _src = _next
-            })
-            (_type == "filter") ifTrue({
+            }
+            (_type == "filter") ifTrue {
                 _next = []
-                _src each({ |item|
-                    (_arg value(item) == true) ifTrue({ _next append(item) })
-                })
+                _src each { |item|
+                    (_arg value(item) == true) ifTrue { _next append(item) }
+                }
                 _src = _next
-            })
-            (_type == "take") ifTrue({
-                _next = []
-                _idx = 0
-                _src each({ |item|
-                    (_idx < _arg) ifTrue({ _next append(item) })
-                    _idx = _idx + 1
-                })
-                _src = _next
-            })
-            (_type == "skip") ifTrue({
+            }
+            (_type == "take") ifTrue {
                 _next = []
                 _idx = 0
-                _src each({ |item|
-                    (_idx >= _arg) ifTrue({ _next append(item) })
+                _src each { |item|
+                    (_idx < _arg) ifTrue { _next append(item) }
                     _idx = _idx + 1
-                })
+                }
                 _src = _next
-            })
-        })
+            }
+            (_type == "skip") ifTrue {
+                _next = []
+                _idx = 0
+                _src each { |item|
+                    (_idx >= _arg) ifTrue { _next append(item) }
+                    _idx = _idx + 1
+                }
+                _src = _next
+            }
+        }
         _src
     }
 
     reduce(init, fn) {
         _acc = init
-        self toArray() each({ |item|
+        self toArray() each { |item|
             _acc = fn value(_acc, item)
-        })
+        }
         _acc
     }
 
@@ -136,7 +136,7 @@ Iter = Object clone {
 
     _firstOf(arr) {
         _r = nil
-        (arr size() > 0) ifTrue({ _r = arr at(0) })
+        (arr size() > 0) ifTrue { _r = arr at(0) }
         _r
     }
 

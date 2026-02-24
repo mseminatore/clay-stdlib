@@ -53,42 +53,42 @@ ArgParser = Object clone {
         positional = Array new()
 
         // Set defaults
-        _flags each({ |f| result set(f get("name"), false) })
-        _options each({ |o| result set(o get("name"), o get("default")) })
+        _flags each { |f| result set(f get("name"), false) }
+        _options each { |o| result set(o get("name"), o get("default")) }
 
         i = 0
-        { i < args size() } whileTrue({
+        { i < args size() } whileTrue {
             arg = args at(i)
             matched = false
 
             // Check flags
-            _flags each({ |f|
-                ((arg == ("--" + f get("name"))) || (arg == ("-" + f get("short")))) ifTrue({
+            _flags each { |f|
+                ((arg == ("--" + f get("name"))) || (arg == ("-" + f get("short")))) ifTrue {
                     result set(f get("name"), true)
                     matched = true
-                })
-            })
+                }
+            }
 
             // Check options
-            (matched == false) ifTrue({
-                _options each({ |o|
-                    ((arg == ("--" + o get("name"))) || (arg == ("-" + o get("short")))) ifTrue({
-                        (i + 1 < args size()) ifTrue({
+            (matched == false) ifTrue {
+                _options each { |o|
+                    ((arg == ("--" + o get("name"))) || (arg == ("-" + o get("short")))) ifTrue {
+                        (i + 1 < args size()) ifTrue {
                             i = i + 1
                             result set(o get("name"), args at(i))
                             matched = true
-                        })
-                    })
-                })
-            })
+                        }
+                    }
+                }
+            }
 
             // Positional
-            (matched == false) ifTrue({
+            (matched == false) ifTrue {
                 positional push(arg)
-            })
+            }
 
             i = i + 1
-        })
+        }
 
         result set("_positional", positional)
         result
@@ -97,11 +97,11 @@ ArgParser = Object clone {
     usage() {
         (_name + " - " + _desc) println()
         "Options:" println()
-        _flags each({ |f|
+        _flags each { |f|
             ("  --" + f get("name") + ", -" + f get("short") + "  " + f get("help")) println()
-        })
-        _options each({ |o|
+        }
+        _options each { |o|
             ("  --" + o get("name") + ", -" + o get("short") + " <value>  " + o get("help") + " (default: " + o get("default") toString() + ")") println()
-        })
+        }
     }
 }

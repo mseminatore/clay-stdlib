@@ -13,18 +13,18 @@
 Template = Object clone {
     render(tmpl, data) {
         result = tmpl
-        data each({ |key, value|
+        data each { |key, value|
             placeholder = "{{" + key + "}}"
             result = result replace(placeholder, value toString())
-        })
+        }
         result
     }
 
     renderEach(tmpl, items) {
         // Render template for each item in array, returns joined string
-        results = items map({ |item|
+        results = items map { |item|
             self render(tmpl, item)
-        })
+        }
         results join("")
     }
 }

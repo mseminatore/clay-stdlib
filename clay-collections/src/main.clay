@@ -16,7 +16,7 @@
 //   q enqueue("a")
 //   q dequeue        // "a"
 //
-//   Range new(1, 5) each({ |i| i println() })
+//   Range new(1, 5) each { |i| i println() }
 
 // --- Set: unique elements backed by Dict ---
 Set = Object clone {
@@ -30,7 +30,7 @@ Set = Object clone {
 
     from(arr) {
         s = self new()
-        arr each({ |v| s add(v) })
+        arr each { |v| s add(v) }
         s
     }
 
@@ -63,20 +63,20 @@ Set = Object clone {
 
     union(other) {
         result = self new()
-        self toArray() each({ |v| result add(v) })
-        other toArray() each({ |v| result add(v) })
+        self toArray() each { |v| result add(v) }
+        other toArray() each { |v| result add(v) }
         result
     }
 
     intersection(other) {
         result = self new()
-        self toArray() filter({ |v| other contains(v) }) each({ |v| result add(v) })
+        self toArray() filter { |v| other contains(v) } each { |v| result add(v) }
         result
     }
 
     difference(other) {
         result = self new()
-        self toArray() filter({ |v| other contains(v) not }) each({ |v| result add(v) })
+        self toArray() filter { |v| other contains(v) not } each { |v| result add(v) }
         result
     }
 
@@ -103,7 +103,7 @@ Stack = Object clone {
 
     pop() {
         sz = _items size
-        (sz == 0) ifTrue({ raise("Stack is empty") })
+        (sz == 0) ifTrue { raise("Stack is empty") }
         val = _items at(sz - 1)
         _items removeAt(sz - 1)
         val
@@ -111,7 +111,7 @@ Stack = Object clone {
 
     peek() {
         sz = _items size
-        (sz == 0) ifTrue({ raise("Stack is empty") })
+        (sz == 0) ifTrue { raise("Stack is empty") }
         _items at(sz - 1)
     }
 
@@ -148,14 +148,14 @@ Queue = Object clone {
     }
 
     dequeue() {
-        (_items size == 0) ifTrue({ raise("Queue is empty") })
+        (_items size == 0) ifTrue { raise("Queue is empty") }
         val = _items at(0)
         _items removeAt(0)
         val
     }
 
     peek() {
-        (_items size == 0) ifTrue({ raise("Queue is empty") })
+        (_items size == 0) ifTrue { raise("Queue is empty") }
         _items at(0)
     }
 
@@ -202,32 +202,32 @@ Range = Object clone {
         i = _start
         step = _step
         end = _end
-        { i <= end } whileTrue({
+        { i <= end } whileTrue {
             block value(i)
             i += step
-        })
+        }
         self
     }
 
     map(block) {
         result = []
-        self each({ |i| result append(block value(i)) })
+        self each { |i| result append(block value(i)) }
         result
     }
 
     filter(block) {
         result = []
-        self each({ |i|
-            block value(i) ifTrue({
+        self each { |i|
+            block value(i) ifTrue {
                 result append(i)
-            })
-        })
+            }
+        }
         result
     }
 
     toArray() {
         result = []
-        self each({ |i| result append(i) })
+        self each { |i| result append(i) }
         result
     }
 
@@ -237,9 +237,9 @@ Range = Object clone {
 
     size() {
         diff = _end - _start
-        (diff < 0) ifTrue({ 0 }) ifFalse({
+        (diff < 0) ifTrue { 0 } ifFalse {
             diff / _step + 1
-        })
+        }
     }
 
     toString() {

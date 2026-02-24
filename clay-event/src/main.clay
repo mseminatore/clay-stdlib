@@ -19,9 +19,9 @@ Emitter = Object clone {
 
     on(event, handler) {
         key = event toString()
-        _handlers has(key) ifFalse({
+        _handlers has(key) ifFalse {
             _handlers set(key, [])
-        })
+        }
         _handlers get(key) append(handler)
         self
     }
@@ -33,25 +33,25 @@ Emitter = Object clone {
 
     emit(event) {
         key = event toString()
-        _handlers has(key) ifTrue({
-            _handlers get(key) each({ |h| h value() })
-        })
+        _handlers has(key) ifTrue {
+            _handlers get(key) each { |h| h value() }
+        }
         self
     }
 
     emitWith(event, data) {
         key = event toString()
-        _handlers has(key) ifTrue({
-            _handlers get(key) each({ |h| h value(data) })
-        })
+        _handlers has(key) ifTrue {
+            _handlers get(key) each { |h| h value(data) }
+        }
         self
     }
 
     once(event, handler) {
         key = event toString()
-        _handlers has(key) ifFalse({
+        _handlers has(key) ifFalse {
             _handlers set(key, [])
-        })
+        }
         wrapper = { |data|
             handler value(data)
             self off(event)
@@ -67,9 +67,9 @@ Emitter = Object clone {
 
     listenerCount(event) {
         key = event toString()
-        _handlers has(key) ifTrue({
+        _handlers has(key) ifTrue {
             _handlers get(key) size
-        }) ifFalse({ 0 })
+        } ifFalse { 0 }
     }
 
     events() {

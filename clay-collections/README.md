@@ -97,8 +97,8 @@ A numeric range with optional step.
 
 ```clay
 r = Range new(1, 5)
-r each({ |n| n println() })   // 1, 2, 3, 4, 5
-r map({ |n| n * 2 })          // [2, 4, 6, 8, 10]
+r each { |n| n println() }   // 1, 2, 3, 4, 5
+r map { |n| n * 2 }          // [2, 4, 6, 8, 10]
 r contains(3)                  // true
 r size()                       // 5
 r toArray()                    // [1, 2, 3, 4, 5]

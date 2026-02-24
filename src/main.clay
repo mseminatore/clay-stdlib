@@ -19,30 +19,30 @@ import("clay-stdlib/clay-template")
 // === Assert -- simple assertion helper ===
 Assert = Object clone {
     that(cond, msg) {
-        (cond == false) ifTrue({
+        (cond == false) ifTrue {
             raise("Assertion failed: " + msg)
-        })
+        }
         true
     }
 
     equal(a, b) {
-        (a == b) ifFalse({
+        (a == b) ifFalse {
             raise("Assertion failed: expected " + a toString() + " == " + b toString())
-        })
+        }
         true
     }
 
     notEqual(a, b) {
-        (a != b) ifFalse({
+        (a != b) ifFalse {
             raise("Assertion failed: expected " + a toString() + " != " + b toString())
-        })
+        }
         true
     }
 
     notNil(val) {
-        (val == nil) ifTrue({
+        (val == nil) ifTrue {
             raise("Assertion failed: expected non-nil value")
-        })
+        }
         true
     }
 }
@@ -65,13 +65,13 @@ Time = Object clone {
 // === MathUtil -- extra math utilities ===
 MathUtil = Object clone {
     abs(n) {
-        (n < 0) ifTrue({ 0 - n }) ifFalse({ n })
+        (n < 0) ifTrue { 0 - n } ifFalse { n }
     }
 
     clamp(n, lo, hi) {
-        (n < lo) ifTrue({ lo }) ifFalse({
-            (n > hi) ifTrue({ hi }) ifFalse({ n })
-        })
+        (n < lo) ifTrue { lo } ifFalse {
+            (n > hi) ifTrue { hi } ifFalse { n }
+        }
     }
 
     lerp(a, b, t) {
@@ -79,8 +79,8 @@ MathUtil = Object clone {
     }
 
     sign(n) {
-        (n > 0) ifTrue({ 1 }) ifFalse({
-            (n < 0) ifTrue({ 0 - 1 }) ifFalse({ 0 })
-        })
+        (n > 0) ifTrue { 1 } ifFalse {
+            (n < 0) ifTrue { 0 - 1 } ifFalse { 0 }
+        }
     }
 }
