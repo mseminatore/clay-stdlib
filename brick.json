@@ -17,6 +17,8 @@
     "clay-stdlib/clay-path": "github.com/mseminatore/clay-stdlib/clay-path",
     "clay-stdlib/clay-args": "github.com/mseminatore/clay-stdlib/clay-args",
     "clay-stdlib/clay-template": "github.com/mseminatore/clay-stdlib/clay-template",
-    "clay-stdlib/clay-http-server": "github.com/mseminatore/clay-stdlib/clay-http-server"
+    "clay-stdlib/clay-http-server": "github.com/mseminatore/clay-stdlib/clay-http-server",
+    "clay-stdlib/clay-router": "github.com/mseminatore/clay-stdlib/clay-router",
+    "clay-stdlib/clay-orm": "github.com/mseminatore/clay-stdlib/clay-orm"
   }
 }
