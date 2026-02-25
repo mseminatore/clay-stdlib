@@ -38,7 +38,7 @@ Model = Object clone {
                     vals = vals + ", "
                 }
                 cols = cols + col
-                vals = vals + "'" + v toString() + "'"
+                vals = vals + "'" + _db escape(v toString()) + "'"
             }
         }
         sql = "INSERT INTO " + _table + " (" + cols + ") VALUES (" + vals + ")"
@@ -64,7 +64,7 @@ Model = Object clone {
     // Find records matching a condition
     where(col, val) {
         rows = _db query("SELECT * FROM " + _table +
-            " WHERE " + col + " = '" + val toString() + "' ORDER BY id")
+            " WHERE " + col + " = '" + _db escape(val toString()) + "' ORDER BY id")
         rows map { |row| self _wrap(row) }
     }
 
@@ -86,7 +86,7 @@ Model = Object clone {
             v = data get(col)
             (v != nil) ifTrue {
                 (sets length() > 0) ifTrue { sets = sets + ", " }
-                sets = sets + col + " = '" + v toString() + "'"
+                sets = sets + col + " = '" + _db escape(v toString()) + "'"
             }
         }
         (sets length() > 0) ifTrue {
