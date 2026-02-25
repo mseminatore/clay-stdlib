@@ -74,6 +74,26 @@ Model = Object clone {
         rows at(0) get("cnt")
     }
 
+    // Delete a record by id
+    delete(id) {
+        _db exec("DELETE FROM " + _table + " WHERE id = " + id toString())
+    }
+
+    // Update a record by id with a Dict of column values
+    update(id, data) {
+        sets = ""
+        _columns each { |col|
+            v = data get(col)
+            (v != nil) ifTrue {
+                (sets length() > 0) ifTrue { sets = sets + ", " }
+                sets = sets + col + " = '" + v toString() + "'"
+            }
+        }
+        (sets length() > 0) ifTrue {
+            _db exec("UPDATE " + _table + " SET " + sets + " WHERE id = " + id toString())
+        }
+    }
+
     // Wrap a row Dict into a model instance
     _wrap(row) {
         inst = Object clone {}
@@ -84,9 +104,3 @@ Model = Object clone {
         inst
     }
 }
-
-// Instance methods — called on wrapped model objects
-// Usage: todo get("title"), todo set("done", 1), todo save(), todo destroy()
-//
-// Note: Since Clay is prototype-based, instance methods are defined
-// on Object and guard with _model presence. This keeps the ORM simple.
