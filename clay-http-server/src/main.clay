@@ -4,6 +4,7 @@
 //   import("clay-stdlib/clay-http-server")
 //
 //   server = HttpServer new(8080)
+//   server logging(true)
 //   server get("/", { |req| server html(200, "<h1>Hello!</h1>") })
 //   server get("/api/time", { |req| server json(200, Date now() toString()) })
 //   server start()
@@ -11,12 +12,18 @@
 HttpServer = Object clone {
     _port = 8080
     _routes = nil
+    _logging = false
 
     new(port) {
         s = self clone
         s _port = port
         s _routes = Array new()
         s
+    }
+
+    logging(on) {
+        self _logging = on
+        self
     }
 
     get(path, handler) {
@@ -83,9 +90,13 @@ HttpServer = Object clone {
     // Start the server (blocking)
     start() {
         routes = _routes
+        log = _logging
         Http serve(_port, { |req|
             method = req method()
             path = req path()
+            (log == true) ifTrue {
+                (method + " " + path) println()
+            }
             matched = nil
             pathSegs = path split("/")
 
@@ -109,7 +120,7 @@ HttpServer = Object clone {
                         }
                         (ok == 1) ifTrue {
                             req _params = params
-                            matched = route _handler value(req)
+                            matched = route _handler(req)
                         }
                     }
                 }
