@@ -1,0 +1,118 @@
+Cache = Object clone {
+  new() {
+    c = self clone
+    c _store = Dict clone
+    c _order = Array new()
+    c _times = Dict clone
+    c _maxSize = 0
+    c _ttl = 0
+    c
+  }
+
+  maxSize(n) {
+    self _maxSize = n
+    self
+  }
+
+  ttl(seconds) {
+    self _ttl = seconds
+    self
+  }
+
+  _isExpired(k) {
+    (self _ttl > 0) ifTrue {
+      now = System clock()
+      stored = self _times get(k)
+      (stored != nil) ifTrue {
+        ((now - stored) > (self _ttl * 1000)) ifTrue {
+          true
+        } ifFalse {
+          false
+        }
+      } ifFalse {
+        false
+      }
+    } ifFalse {
+      false
+    }
+  }
+
+  _touch(k) {
+    self _order = self _order filter { |x| x != k }
+    self _order push(k)
+  }
+
+  _evict() {
+    oldest = self _order at(0)
+    self _store remove(oldest)
+    self _times remove(oldest)
+    self _order = self _order slice(1, self _order size())
+  }
+
+  set(k, v) {
+    (self _store has(k)) ifTrue {
+      self _store set(k, v)
+      self _times set(k, System clock())
+      self _touch(k)
+    } ifFalse {
+      ((self _maxSize > 0) && (self _store size() >= self _maxSize)) ifTrue {
+        self _evict()
+      }
+      self _store set(k, v)
+      self _times set(k, System clock())
+      self _order push(k)
+    }
+    self
+  }
+
+  get(k) {
+    (self _store has(k)) ifTrue {
+      (self _isExpired(k)) ifTrue {
+        self remove(k)
+        nil
+      } ifFalse {
+        self _touch(k)
+        self _store get(k)
+      }
+    } ifFalse {
+      nil
+    }
+  }
+
+  has(k) {
+    (self _store has(k)) ifTrue {
+      (self _isExpired(k)) ifTrue {
+        self remove(k)
+        false
+      } ifFalse {
+        true
+      }
+    } ifFalse {
+      false
+    }
+  }
+
+  remove(k) {
+    (self _store has(k)) ifTrue {
+      self _store remove(k)
+      self _times remove(k)
+      self _order = self _order filter { |x| x != k }
+    }
+    self
+  }
+
+  clear() {
+    self _store = Dict clone
+    self _order = Array new()
+    self _times = Dict clone
+    self
+  }
+
+  size() {
+    self _store size()
+  }
+
+  keys() {
+    self _order
+  }
+}

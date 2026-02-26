@@ -1,0 +1,288 @@
+Markdown = Object clone {
+  render(md) {
+    lines = md split("\n")
+    out = Array new()
+    inCodeBlock = false
+    inList = false
+    listType = ""
+    inParagraph = false
+    codeLines = Array new()
+    i = 0
+
+    { i < lines size() } whileTrue {
+      line = lines at(i)
+
+      inCodeBlock ifTrue {
+        (line trim() startsWith("```")) ifTrue {
+          out push("<pre><code>" + codeLines join("\n") + "</code></pre>")
+          codeLines = Array new()
+          inCodeBlock = false
+        } ifFalse {
+          codeLines push(line)
+        }
+      } ifFalse {
+        // Check for fenced code block start
+        (line trim() startsWith("```")) ifTrue {
+          inParagraph ifTrue {
+            out push("</p>")
+            inParagraph = false
+          }
+          inList ifTrue {
+            (listType == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
+            inList = false
+          }
+          inCodeBlock = true
+          codeLines = Array new()
+        } ifFalse {
+          // Check for horizontal rule
+          trimmed = line trim()
+          isHR = false
+          (trimmed == "---") ifTrue { isHR = true }
+          (trimmed == "***") ifTrue { isHR = true }
+          (trimmed == "___") ifTrue { isHR = true }
+
+          isHR ifTrue {
+            inParagraph ifTrue {
+              out push("</p>")
+              inParagraph = false
+            }
+            inList ifTrue {
+              (listType == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
+              inList = false
+            }
+            out push("<hr>")
+          } ifFalse {
+            // Check for heading
+            isHeading = false
+            (line startsWith("# ")) ifTrue { isHeading = true }
+            (line startsWith("## ")) ifTrue { isHeading = true }
+            (line startsWith("### ")) ifTrue { isHeading = true }
+            (line startsWith("#### ")) ifTrue { isHeading = true }
+            (line startsWith("##### ")) ifTrue { isHeading = true }
+            (line startsWith("###### ")) ifTrue { isHeading = true }
+
+            isHeading ifTrue {
+              inParagraph ifTrue {
+                out push("</p>")
+                inParagraph = false
+              }
+              inList ifTrue {
+                (listType == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
+                inList = false
+              }
+              level = 0
+              (line startsWith("###### ")) ifTrue { level = 6 }
+              (line startsWith("##### ")) ifTrue { level = 5 }
+              (line startsWith("#### ")) ifTrue { level = 4 }
+              (line startsWith("### ")) ifTrue { level = 3 }
+              (line startsWith("## ")) ifTrue { level = 2 }
+              (line startsWith("# ")) ifTrue { level = 1 }
+              content = line slice(level + 1, line length())
+              content = self _inline(content)
+              out push("<h" + level toString() + ">" + content + "</h" + level toString() + ">")
+            } ifFalse {
+              // Check for unordered list
+              isUL = false
+              (line startsWith("- ")) ifTrue { isUL = true }
+              (line startsWith("* ")) ifTrue { isUL = true }
+
+              isUL ifTrue {
+                inParagraph ifTrue {
+                  out push("</p>")
+                  inParagraph = false
+                }
+                // Close previous list if different type
+                (inList && (listType != "ul")) ifTrue {
+                  out push("</ol>")
+                  inList = false
+                }
+                inList ifFalse {
+                  out push("<ul>")
+                  inList = true
+                  listType = "ul"
+                }
+                item = line slice(2, line length())
+                out push("<li>" + self _inline(item) + "</li>")
+              } ifFalse {
+                // Check for ordered list
+                isOL = self _isOrderedList(line)
+
+                isOL ifTrue {
+                  inParagraph ifTrue {
+                    out push("</p>")
+                    inParagraph = false
+                  }
+                  (inList && (listType != "ol")) ifTrue {
+                    out push("</ul>")
+                    inList = false
+                  }
+                  inList ifFalse {
+                    out push("<ol>")
+                    inList = true
+                    listType = "ol"
+                  }
+                  dotPos = line indexOf(". ")
+                  item = line slice(dotPos + 2, line length())
+                  out push("<li>" + self _inline(item) + "</li>")
+                } ifFalse {
+                  // Check for blank line
+                  (trimmed length() == 0) ifTrue {
+                    inParagraph ifTrue {
+                      out push("</p>")
+                      inParagraph = false
+                    }
+                    inList ifTrue {
+                      (listType == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
+                      inList = false
+                    }
+                  } ifFalse {
+                    // Regular text line — paragraph
+                    inList ifTrue {
+                      (listType == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
+                      inList = false
+                    }
+                    inParagraph ifTrue {
+                      out push(self _inline(line))
+                    } ifFalse {
+                      out push("<p>" + self _inline(line))
+                      inParagraph = true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      i = i + 1
+    }
+
+    // Close any open blocks
+    inParagraph ifTrue { out push("</p>") }
+    inList ifTrue {
+      (listType == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
+    }
+    inCodeBlock ifTrue {
+      out push("<pre><code>" + codeLines join("\n") + "</code></pre>")
+    }
+
+    out join("\n")
+  }
+
+  _isOrderedList(line) {
+    // Check if line starts with digits followed by ". "
+    (line length() < 3) ifTrue { false } ifFalse {
+      dotPos = line indexOf(". ")
+      (dotPos < 1) ifTrue { false } ifFalse {
+        // Check all chars before dotPos are digits
+        allDigits = true
+        j = 0
+        { j < dotPos } whileTrue {
+          ch = line at(j)
+          isDigit = false
+          (ch == "0") ifTrue { isDigit = true }
+          (ch == "1") ifTrue { isDigit = true }
+          (ch == "2") ifTrue { isDigit = true }
+          (ch == "3") ifTrue { isDigit = true }
+          (ch == "4") ifTrue { isDigit = true }
+          (ch == "5") ifTrue { isDigit = true }
+          (ch == "6") ifTrue { isDigit = true }
+          (ch == "7") ifTrue { isDigit = true }
+          (ch == "8") ifTrue { isDigit = true }
+          (ch == "9") ifTrue { isDigit = true }
+          isDigit ifFalse { allDigits = false }
+          j = j + 1
+        }
+        allDigits
+      }
+    }
+  }
+
+  _inline(s) {
+    // Process images first: ![alt](src)
+    result = self _replaceImages(s)
+    // Process links: [text](url)
+    result = self _replaceLinks(result)
+    // Process bold: **text**
+    result = self _replacePair(result, "**", "<strong>", "</strong>")
+    // Process italic: *text*
+    result = self _replacePair(result, "*", "<em>", "</em>")
+    // Process inline code: `text`
+    result = self _replacePair(result, "`", "<code>", "</code>")
+    result
+  }
+
+  _replacePair(s, marker, openTag, closeTag) {
+    result = s
+    mlen = marker length()
+    pos = result indexOf(marker)
+    { pos >= 0 } whileTrue {
+      rest = result slice(pos + mlen, result length())
+      endPos = rest indexOf(marker)
+      (endPos >= 0) ifTrue {
+        before = result slice(0, pos)
+        inner = rest slice(0, endPos)
+        after = rest slice(endPos + mlen, rest length())
+        result = before + openTag + inner + closeTag + after
+        pos = result indexOf(marker)
+      } ifFalse {
+        pos = -1
+      }
+    }
+    result
+  }
+
+  _replaceLinks(s) {
+    result = s
+    pos = result indexOf("[")
+    { pos >= 0 } whileTrue {
+      rest = result slice(pos, result length())
+      midPos = rest indexOf("](")
+      (midPos >= 0) ifTrue {
+        endPos = rest indexOf(")")
+        (endPos >= 0 && (endPos > midPos)) ifTrue {
+          text = rest slice(1, midPos)
+          url = rest slice(midPos + 2, endPos)
+          before = result slice(0, pos)
+          after = result slice(pos + endPos + 1, result length())
+          tag = "<a href=\"" + url + "\">" + text + "</a>"
+          result = before + tag + after
+          pos = result indexOf("[")
+        } ifFalse {
+          pos = -1
+        }
+      } ifFalse {
+        pos = -1
+      }
+    }
+    result
+  }
+
+  _replaceImages(s) {
+    result = s
+    pos = result indexOf("![")
+    { pos >= 0 } whileTrue {
+      rest = result slice(pos, result length())
+      midPos = rest indexOf("](")
+      (midPos >= 0) ifTrue {
+        endPos = rest indexOf(")")
+        (endPos >= 0 && (endPos > midPos)) ifTrue {
+          alt = rest slice(2, midPos)
+          src = rest slice(midPos + 2, endPos)
+          before = result slice(0, pos)
+          after = result slice(pos + endPos + 1, result length())
+          tag = "<img src=\"" + src + "\" alt=\"" + alt + "\">"
+          result = before + tag + after
+          pos = result indexOf("![")
+        } ifFalse {
+          pos = -1
+        }
+      } ifFalse {
+        pos = -1
+      }
+    }
+    result
+  }
+}
+

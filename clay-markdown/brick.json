@@ -1,0 +1,7 @@
+{
+  "name": "clay-markdown",
+  "version": "0.1.0",
+  "description": "Markdown to HTML converter",
+  "main": "src/main.clay",
+  "deps": {}
+}

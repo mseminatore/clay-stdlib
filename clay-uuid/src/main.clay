@@ -1,0 +1,38 @@
+// UUID v4 generation (RFC 4122)
+Uuid = Object clone {
+    _hexChars = "0123456789abcdef"
+
+    // Generate a random UUID v4 string
+    // Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+    // where y is one of 8, 9, a, b
+    v4() {
+        hex = _hexChars
+        result = ""
+        i = 0
+
+        { i < 32 } whileTrue {
+            (i == 8) ifTrue { result = result + "-" }
+            (i == 12) ifTrue { result = result + "-" }
+            (i == 16) ifTrue { result = result + "-" }
+            (i == 20) ifTrue { result = result + "-" }
+
+            // Position 12: version nibble = 4
+            (i == 12) ifTrue {
+                result = result + "4"
+            } ifFalse {
+                // Position 16: variant bits = 8, 9, a, or b
+                (i == 16) ifTrue {
+                    r = Math floor(Math random() * 4) + 8
+                    result = result + hex at(r)
+                } ifFalse {
+                    r = Math floor(Math random() * 16)
+                    result = result + hex at(r)
+                }
+            }
+
+            i = i + 1
+        }
+
+        result
+    }
+}

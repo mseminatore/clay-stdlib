@@ -1,0 +1,7 @@
+{
+  "name": "clay-cli",
+  "version": "0.1.0",
+  "description": "ANSI terminal colors and styles for CLI tools",
+  "main": "src/main.clay",
+  "deps": {}
+}
