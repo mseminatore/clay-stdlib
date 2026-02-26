@@ -20,10 +20,10 @@ Log debug("processing request")
 Output:
 
 ```
-[INFO] server started
-[WARN] disk space low
-[ERROR] connection failed
-[DEBUG] processing request
+2026-02-26T06:20:00Z [INFO] server started
+2026-02-26T06:20:00Z [WARN] disk space low
+2026-02-26T06:20:00Z [ERROR] connection failed
+2026-02-26T06:20:00Z [DEBUG] processing request
 ```
 
 ## Configuration

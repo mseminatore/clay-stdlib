@@ -57,7 +57,7 @@ Log = Object clone {
     }
 
     _emit(tag, msg) {
-        _line = tag + " "
+        _line = Date now() toString() + " " + tag + " "
         (_prefix != "") ifTrue {
             _line = _line + _prefix + " "
         }
