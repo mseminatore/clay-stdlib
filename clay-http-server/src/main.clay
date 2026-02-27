@@ -22,7 +22,7 @@ HttpServer = Object clone {
     }
 
     logging(on) {
-        self _logging = on
+        _logging = on
         self
     }
 

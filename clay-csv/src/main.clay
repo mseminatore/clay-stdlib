@@ -23,9 +23,9 @@ Csv = Object clone {
     _isQuoted = false
 
     parse(str) {
-        self _src = str
-        self _pos = 0
-        self _len = str length()
+        _src = str
+        _pos = 0
+        _len = str length()
         self _parseRows([])
     }
 
@@ -40,12 +40,12 @@ Csv = Object clone {
         { true } whileTrue {
             fields append(self _parseField())
             (_pos < _len) ifTrue {
-                self _ch = _src at(_pos)
+                _ch = _src at(_pos)
                 (_ch == ",") ifTrue {
-                    self _pos = _pos + 1
+                    _pos = _pos + 1
                 }
                 (_ch == "\n") ifTrue {
-                    self _pos = _pos + 1
+                    _pos = _pos + 1
                     break
                 }
                 (_ch != "," && _ch != "\n") ifTrue {
@@ -58,45 +58,45 @@ Csv = Object clone {
     }
 
     _parseField() {
-        self _isQuoted = false
+        _isQuoted = false
         (_pos < _len && _src at(_pos) == "\"") ifTrue {
-            self _isQuoted = true
+            _isQuoted = true
         }
-        self _result = ""
-        (_isQuoted == true) ifTrue { self _result = self _parseQuoted() }
-        (_isQuoted == false) ifTrue { self _result = self _parseUnquoted() }
+        _result = ""
+        (_isQuoted == true) ifTrue { _result = self _parseQuoted() }
+        (_isQuoted == false) ifTrue { _result = self _parseUnquoted() }
         _result
     }
 
     _parseUnquoted() {
-        self _result = ""
+        _result = ""
         { _pos < _len } whileTrue {
-            self _ch = _src at(_pos)
+            _ch = _src at(_pos)
             (_ch == "," || _ch == "\n") ifTrue { break }
-            self _result = _result + _ch
-            self _pos = _pos + 1
+            _result = _result + _ch
+            _pos = _pos + 1
         }
         _result
     }
 
     _parseQuoted() {
-        self _pos = _pos + 1  // skip opening "
-        self _result = ""
+        _pos = _pos + 1  // skip opening "
+        _result = ""
         { _pos < _len } whileTrue {
-            self _ch = _src at(_pos)
-            self _pos = _pos + 1
+            _ch = _src at(_pos)
+            _pos = _pos + 1
             (_ch == "\"") ifTrue {
                 // Check for escaped quote ""
                 (_pos < _len && _src at(_pos) == "\"") ifTrue {
-                    self _result = _result + "\""
-                    self _pos = _pos + 1
+                    _result = _result + "\""
+                    _pos = _pos + 1
                 }
                 (_pos >= _len || !(_src at(_pos) == "\"")) ifTrue {
                     break
                 }
             }
             (_ch != "\"") ifTrue {
-                self _result = _result + _ch
+                _result = _result + _ch
             }
         }
         _result

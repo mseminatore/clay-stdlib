@@ -10,12 +10,12 @@ Cache = Object clone {
   }
 
   maxSize(n) {
-    self _maxSize = n
+    _maxSize = n
     self
   }
 
   ttl(seconds) {
-    self _ttl = seconds
+    _ttl = seconds
     self
   }
 
@@ -30,15 +30,15 @@ Cache = Object clone {
   }
 
   _touch(k) {
-    self _order = self _order filter { |x| x != k }
-    self _order push(k)
+    _order = _order filter { |x| x != k }
+    _order push(k)
   }
 
   _evict() {
     oldest = self _order at(0)
     self _store remove(oldest)
     self _times remove(oldest)
-    self _order = self _order slice(1, self _order size())
+    _order = _order slice(1, _order size())
   }
 
   set(k, v) {
@@ -88,15 +88,15 @@ Cache = Object clone {
     (self _store has(k)) ifTrue {
       self _store remove(k)
       self _times remove(k)
-      self _order = self _order filter { |x| x != k }
+      _order = _order filter { |x| x != k }
     }
     self
   }
 
   clear() {
-    self _store = Dict clone
-    self _order = Array new()
-    self _times = Dict clone
+    _store = Dict clone
+    _order = Array new()
+    _times = Dict clone
     self
   }
 

@@ -24,10 +24,10 @@ Test = Object clone {
     _reset = "\x1b[0m"
 
     describe(name, block) {
-        self _suite = name
+        _suite = name
         (_bold + _cyan + "  " + name + _reset) println()
         block value()
-        self _suite = ""
+        _suite = ""
         self
     }
 
@@ -37,7 +37,7 @@ Test = Object clone {
             "pass"
         } catch { |e|
             self _failed += 1
-            self _errors = _errors + "    " + _red + "FAIL: " + _suite + " > " + name + " - " + e message() + _reset + "\n"
+            _errors = _errors + "    " + _red + "FAIL: " + _suite + " > " + name + " - " + e message() + _reset + "\n"
             "fail"
         }
         (result == "pass") ifTrue {

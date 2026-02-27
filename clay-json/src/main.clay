@@ -28,12 +28,12 @@ Json = Object clone {
 
     _encode(val) {
         t = val type()
-        (t == "Nil") ifTrue { self _result = "null" }
-        (t == "Number") ifTrue { self _result = val toString() }
-        (t == "Boolean") ifTrue { self _result = val toString() }
-        (t == "String") ifTrue { self _result = self _encodeString(val) }
-        (t == "Array") ifTrue { self _result = self _encodeArray(val) }
-        (t == "Dict") ifTrue { self _result = self _encodeDict(val) }
+        (t == "Nil") ifTrue { _result = "null" }
+        (t == "Number") ifTrue { _result = val toString() }
+        (t == "Boolean") ifTrue { _result = val toString() }
+        (t == "String") ifTrue { _result = self _encodeString(val) }
+        (t == "Array") ifTrue { _result = self _encodeArray(val) }
+        (t == "Dict") ifTrue { _result = self _encodeDict(val) }
         _result
     }
 
@@ -67,9 +67,9 @@ Json = Object clone {
 
     _pretty(val, depth) {
         t = val type()
-        self _result = self _encode(val)
-        (t == "Dict") ifTrue { self _result = self _prettyDict(val, depth) }
-        (t == "Array") ifTrue { self _result = self _prettyArray(val, depth) }
+        _result = self _encode(val)
+        (t == "Dict") ifTrue { _result = self _prettyDict(val, depth) }
+        (t == "Array") ifTrue { _result = self _prettyArray(val, depth) }
         _result
     }
 
@@ -113,23 +113,23 @@ Json = Object clone {
     // --- Parse ---
 
     parse(str) {
-        self _src = str
-        self _pos = 0
-        self _len = str length()
+        _src = str
+        _pos = 0
+        _len = str length()
         self _skipWhitespace()
         result = self _parseValue()
         result
     }
 
     _peek() {
-        self _ch = ""
-        (_pos < _len) ifTrue { self _ch = _src at(_pos) }
+        _ch = ""
+        (_pos < _len) ifTrue { _ch = _src at(_pos) }
         _ch
     }
 
     _advance() {
-        self _ch = self _peek()
-        self _pos = _pos + 1
+        _ch = self _peek()
+        _pos = _pos + 1
         _ch
     }
 
@@ -139,49 +139,49 @@ Json = Object clone {
 
     _parseValue() {
         self _skipWs()
-        self _ch = self _peek()
-        self _result = nil
-        (_ch == "\"") ifTrue { self _result = self _parseString() }
-        (_ch == "{" && _result == nil) ifTrue { self _result = self _parseObject() }
-        (_ch == "[" && _result == nil) ifTrue { self _result = self _parseArray() }
-        (_ch == "t" && _result == nil) ifTrue { self _result = self _parseLiteral("true", true) }
-        (_ch == "f" && _result == nil) ifTrue { self _result = self _parseLiteral("false", false) }
-        (_ch == "n" && _result == nil) ifTrue { self _result = self _parseLiteral("null", nil) }
+        _ch = self _peek()
+        _result = nil
+        (_ch == "\"") ifTrue { _result = self _parseString() }
+        (_ch == "{" && _result == nil) ifTrue { _result = self _parseObject() }
+        (_ch == "[" && _result == nil) ifTrue { _result = self _parseArray() }
+        (_ch == "t" && _result == nil) ifTrue { _result = self _parseLiteral("true", true) }
+        (_ch == "f" && _result == nil) ifTrue { _result = self _parseLiteral("false", false) }
+        (_ch == "n" && _result == nil) ifTrue { _result = self _parseLiteral("null", nil) }
         (("0123456789-" contains(_ch)) && _result == nil) ifTrue {
-            self _result = self _parseNumber()
+            _result = self _parseNumber()
         }
         _result
     }
 
     _skipWs() {
-        self _done = false
+        _done = false
         { _done == false && _pos < _len } whileTrue {
-            self _ch = _src at(_pos)
+            _ch = _src at(_pos)
             (_ch == " " || _ch == "\n" || _ch == "\r" || _ch == "\t") ifTrue {
-                self _pos = _pos + 1
+                _pos = _pos + 1
             }
             (!(_ch == " " || _ch == "\n" || _ch == "\r" || _ch == "\t")) ifTrue {
-                self _done = true
+                _done = true
             }
         }
     }
 
     _parseString() {
         self _advance()  // skip opening "
-        self _result = ""
-        self _done = false
+        _result = ""
+        _done = false
         { _done == false && _pos < _len } whileTrue {
-            self _ch = self _advance()
-            (_ch == "\"") ifTrue { self _done = true }
+            _ch = self _advance()
+            (_ch == "\"") ifTrue { _done = true }
             (_ch != "\"" && _ch == "\\") ifTrue {
-                self _ch = self _advance()
-                (_ch == "n") ifTrue { self _ch = "\n" }
-                (_ch == "t") ifTrue { self _ch = "\t" }
-                (_ch == "r") ifTrue { self _ch = "\r" }
-                self _result = _result + _ch
+                _ch = self _advance()
+                (_ch == "n") ifTrue { _ch = "\n" }
+                (_ch == "t") ifTrue { _ch = "\t" }
+                (_ch == "r") ifTrue { _ch = "\r" }
+                _result = _result + _ch
             }
             (_ch != "\"" && _ch != "\\") ifTrue {
-                self _result = _result + _ch
+                _result = _result + _ch
             }
         }
         _result
@@ -191,25 +191,25 @@ Json = Object clone {
         _start = _pos
         _isFloat = false
         _digits = "0123456789"
-        (self _peek() == "-") ifTrue { self _pos = _pos + 1 }
-        self _done = false
+        (self _peek() == "-") ifTrue { _pos = _pos + 1 }
+        _done = false
         { _done == false && _pos < _len } whileTrue {
-            self _ch = _src at(_pos)
-            (_digits contains(_ch)) ifTrue { self _pos = _pos + 1 }
+            _ch = _src at(_pos)
+            (_digits contains(_ch)) ifTrue { _pos = _pos + 1 }
             (!(_digits contains(_ch)) && _ch == "." && _isFloat == false) ifTrue {
                 _isFloat = true
-                self _pos = _pos + 1
+                _pos = _pos + 1
             }
             (!(_digits contains(_ch)) && _ch != ".") ifTrue {
-                self _done = true
+                _done = true
             }
             (!(_digits contains(_ch)) && _ch == "." && _isFloat == true) ifTrue {
-                self _done = true
+                _done = true
             }
         }
         _numStr = _src slice(_start, _pos)
-        self _result = _numStr toInt()
-        (_isFloat == true) ifTrue { self _result = _numStr toFloat() }
+        _result = _numStr toInt()
+        (_isFloat == true) ifTrue { _result = _numStr toFloat() }
         _result
     }
 
@@ -265,7 +265,7 @@ Json = Object clone {
     }
 
     _parseLiteral(expected, value) {
-        self _pos = _pos + expected length()
+        _pos = _pos + expected length()
         value
     }
 }

@@ -16,15 +16,15 @@ Log = Object clone {
     _prefix = ""
 
     level(name) {
-        (name == "debug") ifTrue { self _level = 0 }
-        (name == "info")  ifTrue { self _level = 1 }
-        (name == "warn")  ifTrue { self _level = 2 }
-        (name == "error") ifTrue { self _level = 3 }
+        (name == "debug") ifTrue { _level = 0 }
+        (name == "info")  ifTrue { _level = 1 }
+        (name == "warn")  ifTrue { _level = 2 }
+        (name == "error") ifTrue { _level = 3 }
         self
     }
 
     prefix(p) {
-        self _prefix = p
+        _prefix = p
         self
     }
 

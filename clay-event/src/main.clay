@@ -61,7 +61,7 @@ Emitter = Object clone {
     }
 
     removeAll() {
-        self _handlers = Dict clone
+        _handlers = Dict clone
         self
     }
 
