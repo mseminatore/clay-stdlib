@@ -37,8 +37,7 @@ Csv = Object clone {
     }
 
     _parseRow(fields) {
-        self _rowDone = false
-        { _rowDone == false } whileTrue {
+        { true } whileTrue {
             fields append(self _parseField())
             (_pos < _len) ifTrue {
                 self _ch = _src at(_pos)
@@ -47,13 +46,13 @@ Csv = Object clone {
                 }
                 (_ch == "\n") ifTrue {
                     self _pos = _pos + 1
-                    self _rowDone = true
+                    break
                 }
                 (_ch != "," && _ch != "\n") ifTrue {
-                    self _rowDone = true
+                    break
                 }
             }
-            (_pos >= _len) ifTrue { self _rowDone = true }
+            (_pos >= _len) ifTrue { break }
         }
         fields
     }
@@ -71,14 +70,11 @@ Csv = Object clone {
 
     _parseUnquoted() {
         self _result = ""
-        self _done = false
-        { _done == false && _pos < _len } whileTrue {
+        { _pos < _len } whileTrue {
             self _ch = _src at(_pos)
-            (_ch == "," || _ch == "\n") ifTrue { self _done = true }
-            (_ch != "," && _ch != "\n") ifTrue {
-                self _result = _result + _ch
-                self _pos = _pos + 1
-            }
+            (_ch == "," || _ch == "\n") ifTrue { break }
+            self _result = _result + _ch
+            self _pos = _pos + 1
         }
         _result
     }
@@ -86,8 +82,7 @@ Csv = Object clone {
     _parseQuoted() {
         self _pos = _pos + 1  // skip opening "
         self _result = ""
-        self _done = false
-        { _done == false && _pos < _len } whileTrue {
+        { _pos < _len } whileTrue {
             self _ch = _src at(_pos)
             self _pos = _pos + 1
             (_ch == "\"") ifTrue {
@@ -97,7 +92,7 @@ Csv = Object clone {
                     self _pos = _pos + 1
                 }
                 (_pos >= _len || !(_src at(_pos) == "\"")) ifTrue {
-                    self _done = true
+                    break
                 }
             }
             (_ch != "\"") ifTrue {

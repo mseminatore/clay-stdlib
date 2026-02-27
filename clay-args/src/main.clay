@@ -28,22 +28,13 @@ ArgParser = Object clone {
     }
 
     flag(name, short, help) {
-        entry = Dict new()
-        entry set("name", name)
-        entry set("short", short)
-        entry set("help", help)
-        entry set("type", "flag")
+        entry = #{name: name, short: short, help: help, type: "flag"}
         _flags push(entry)
         self
     }
 
     option(name, short, help, default) {
-        entry = Dict new()
-        entry set("name", name)
-        entry set("short", short)
-        entry set("help", help)
-        entry set("default", default)
-        entry set("type", "option")
+        entry = #{name: name, short: short, help: help, default: default, type: "option"}
         _options push(entry)
         self
     }
@@ -66,6 +57,7 @@ ArgParser = Object clone {
                 ((arg == ("--" + f get("name"))) || (arg == ("-" + f get("short")))) ifTrue {
                     result set(f get("name"), true)
                     matched = true
+                    break
                 }
             }
 
@@ -77,6 +69,7 @@ ArgParser = Object clone {
                             i = i + 1
                             result set(o get("name"), args at(i))
                             matched = true
+                            break
                         }
                     }
                 }

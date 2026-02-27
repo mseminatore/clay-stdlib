@@ -186,21 +186,14 @@ Schema = Object clone {
     // -- Internal helpers --
 
     _makeField(name, type, isRequired, default) {
-        f = Dict clone
-        f set("name", name)
-        f set("type", type)
-        f set("required", isRequired)
-        f set("default", default)
-        f set("rules", Array new())
+        f = #{name: name, type: type, required: isRequired, default: default, rules: Array new()}
         f
     }
 
     _addRule(name, ruleType, ruleVal) {
         self _fields each { |field|
             (field get("name") == name) ifTrue {
-                r = Dict clone
-                r set("type", ruleType)
-                r set("value", ruleVal)
+                r = #{type: ruleType, value: ruleVal}
                 field get("rules") push(r)
             }
         }

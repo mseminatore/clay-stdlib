@@ -57,9 +57,7 @@ Router = Object clone {
                         }
                     }
                     (matched == 1) ifTrue {
-                        result = Dict clone
-                        result set("handler", route _handler)
-                        result set("params", params)
+                        result = #{handler: route _handler, params: params}
                     }
                 }
             }

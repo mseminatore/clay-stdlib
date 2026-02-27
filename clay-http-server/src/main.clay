@@ -126,10 +126,7 @@ HttpServer = Object clone {
                 }
             }
 
-            (matched == nil) ifTrue {
-                matched = Http response(404, "Not Found")
-            }
-            matched
+            matched ?? Http response(404, "Not Found")
         })
     }
 }

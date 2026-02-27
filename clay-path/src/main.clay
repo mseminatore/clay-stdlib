@@ -48,10 +48,9 @@ Path = Object clone {
         { i >= 0 } whileTrue {
             (base at(i) == ".") ifTrue {
                 found = i
-                i = -1
-            } ifFalse {
-                i = i - 1
+                break
             }
+            i = i - 1
         }
         (found <= 0) ifTrue { "" } ifFalse {
             base slice(found, base length())
@@ -73,10 +72,9 @@ Path = Object clone {
             ch = path at(i)
             ((ch == "/") || (ch == "\\")) ifTrue {
                 found = i
-                i = -1
-            } ifFalse {
-                i = i - 1
+                break
             }
+            i = i - 1
         }
         found
     }

@@ -23,15 +23,7 @@ Cache = Object clone {
     (self _ttl > 0) ifTrue {
       now = System clock()
       stored = self _times get(k)
-      (stored != nil) ifTrue {
-        ((now - stored) > (self _ttl * 1000)) ifTrue {
-          true
-        } ifFalse {
-          false
-        }
-      } ifFalse {
-        false
-      }
+      ((stored != nil) && ((now - stored) > (self _ttl * 1000)))
     } ifFalse {
       false
     }

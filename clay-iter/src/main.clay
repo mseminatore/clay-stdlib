@@ -100,7 +100,8 @@ Iter = Object clone {
                 _next = []
                 _idx = 0
                 _src each { |item|
-                    (_idx < _arg) ifTrue { _next append(item) }
+                    (_idx >= _arg) ifTrue { break }
+                    _next append(item)
                     _idx = _idx + 1
                 }
                 _src = _next

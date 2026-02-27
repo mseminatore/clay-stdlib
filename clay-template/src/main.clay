@@ -26,7 +26,6 @@ Template = Object clone {
         results = items map { |item|
             self render(tmpl, item)
         }
-        (sep == nil) ifTrue { sep = "" }
-        results join(sep)
+        results join(sep ?? "")
     }
 }
