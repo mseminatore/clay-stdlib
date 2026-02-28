@@ -3,10 +3,14 @@ Markdown = Object clone {
     lines = md split("\n")
     out = Array new()
     inCodeBlock = false
-    inList = false
-    listType = ""
     inParagraph = false
     codeLines = Array new()
+    inTable = false
+    tableAligns = Array new()
+    inBlockquote = false
+    bqLines = Array new()
+    // List nesting: listStack tracks open list types at each depth
+    listStack = Array new()
     i = 0
 
     { i < lines size() } whileTrue {
@@ -21,34 +25,35 @@ Markdown = Object clone {
           codeLines push(line)
         }
       } ifFalse {
+        trimmed = line trim()
+
         // Check for fenced code block start
-        (line trim() startsWith("```")) ifTrue {
-          inParagraph ifTrue {
-            out push("</p>")
-            inParagraph = false
-          }
-          inList ifTrue {
-            (listType == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
-            inList = false
+        (trimmed startsWith("```")) ifTrue {
+          self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+          self _closeAllLists(out, listStack)
+          listStack = Array new()
+          self _closeTable(out, inTable) ifTrue { inTable = false }
+          self _closeBlockquote(out, inBlockquote, bqLines) ifTrue {
+            inBlockquote = false
+            bqLines = Array new()
           }
           inCodeBlock = true
           codeLines = Array new()
         } ifFalse {
           // Check for horizontal rule
-          trimmed = line trim()
           isHR = false
           (trimmed == "---") ifTrue { isHR = true }
           (trimmed == "***") ifTrue { isHR = true }
           (trimmed == "___") ifTrue { isHR = true }
 
           isHR ifTrue {
-            inParagraph ifTrue {
-              out push("</p>")
-              inParagraph = false
-            }
-            inList ifTrue {
-              (listType == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
-              inList = false
+            self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+            self _closeAllLists(out, listStack)
+            listStack = Array new()
+            self _closeTable(out, inTable) ifTrue { inTable = false }
+            self _closeBlockquote(out, inBlockquote, bqLines) ifTrue {
+              inBlockquote = false
+              bqLines = Array new()
             }
             out push("<hr>")
           } ifFalse {
@@ -62,13 +67,13 @@ Markdown = Object clone {
             (line startsWith("###### ")) ifTrue { isHeading = true }
 
             isHeading ifTrue {
-              inParagraph ifTrue {
-                out push("</p>")
-                inParagraph = false
-              }
-              inList ifTrue {
-                (listType == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
-                inList = false
+              self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+              self _closeAllLists(out, listStack)
+              listStack = Array new()
+              self _closeTable(out, inTable) ifTrue { inTable = false }
+              self _closeBlockquote(out, inBlockquote, bqLines) ifTrue {
+                inBlockquote = false
+                bqLines = Array new()
               }
               level = 0
               (line startsWith("###### ")) ifTrue { level = 6 }
@@ -79,73 +84,142 @@ Markdown = Object clone {
               (line startsWith("# ")) ifTrue { level = 1 }
               content = line slice(level + 1, line length())
               content = self _inline(content)
-              out push("<h" + level toString() + ">" + content + "</h" + level toString() + ">")
+              out push("<h" + level toString + ">" + content + "</h" + level toString + ">")
             } ifFalse {
-              // Check for unordered list
-              isUL = false
-              (line startsWith("- ")) ifTrue { isUL = true }
-              (line startsWith("* ")) ifTrue { isUL = true }
+              // Check for blockquote
+              isBlockquote = false
+              (trimmed startsWith("> ")) ifTrue { isBlockquote = true }
+              (trimmed == ">") ifTrue { isBlockquote = true }
 
-              isUL ifTrue {
-                inParagraph ifTrue {
-                  out push("</p>")
-                  inParagraph = false
-                }
-                // Close previous list if different type
-                (inList && (listType != "ul")) ifTrue {
-                  out push("</ol>")
-                  inList = false
-                }
-                inList ifFalse {
-                  out push("<ul>")
-                  inList = true
-                  listType = "ul"
-                }
-                item = line slice(2, line length())
-                out push("<li>" + self _inline(item) + "</li>")
-              } ifFalse {
-                // Check for ordered list
-                isOL = self _isOrderedList(line)
-
-                isOL ifTrue {
-                  inParagraph ifTrue {
-                    out push("</p>")
-                    inParagraph = false
-                  }
-                  (inList && (listType != "ol")) ifTrue {
-                    out push("</ul>")
-                    inList = false
-                  }
-                  inList ifFalse {
-                    out push("<ol>")
-                    inList = true
-                    listType = "ol"
-                  }
-                  dotPos = line indexOf(". ")
-                  item = line slice(dotPos + 2, line length())
-                  out push("<li>" + self _inline(item) + "</li>")
+              isBlockquote ifTrue {
+                self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+                self _closeAllLists(out, listStack)
+                listStack = Array new()
+                self _closeTable(out, inTable) ifTrue { inTable = false }
+                content = ""
+                (trimmed == ">") ifTrue {
+                  content = ""
                 } ifFalse {
-                  // Check for blank line
-                  (trimmed length() == 0) ifTrue {
-                    inParagraph ifTrue {
-                      out push("</p>")
-                      inParagraph = false
+                  content = trimmed slice(2, trimmed length)
+                }
+                inBlockquote ifFalse {
+                  inBlockquote = true
+                  bqLines = Array new()
+                }
+                bqLines push(content)
+              } ifFalse {
+                // Close blockquote if we were in one
+                self _closeBlockquote(out, inBlockquote, bqLines) ifTrue {
+                  inBlockquote = false
+                  bqLines = Array new()
+                }
+
+                // Check for table row
+                isTableRow = false
+                (trimmed startsWith("|")) ifTrue { isTableRow = true }
+
+                isTableRow ifTrue {
+                  self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+                  self _closeAllLists(out, listStack)
+                  listStack = Array new()
+
+                  inTable ifFalse {
+                    // First table row — this is the header
+                    // Check if next line is separator
+                    nextIdx = i + 1
+                    hasSep = false
+                    (nextIdx < lines size()) ifTrue {
+                      nextLine = lines at(nextIdx) trim
+                      (nextLine startsWith("|")) ifTrue {
+                        (nextLine contains("---")) ifTrue { hasSep = true }
+                      }
                     }
-                    inList ifTrue {
-                      (listType == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
-                      inList = false
-                    }
-                  } ifFalse {
-                    // Regular text line — paragraph
-                    inList ifTrue {
-                      (listType == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
-                      inList = false
-                    }
-                    inParagraph ifTrue {
-                      out push(self _inline(line))
+
+                    hasSep ifTrue {
+                      // Parse header cells
+                      cells = self _parseTableCells(trimmed)
+                      // Parse separator for alignment
+                      sepLine = lines at(nextIdx) trim
+                      tableAligns = self _parseAligns(sepLine)
+                      out push("<table style=\"border-collapse: collapse\">")
+                      out push("<thead>")
+                      out push(self _tableRow(cells, "th", tableAligns))
+                      out push("</thead>")
+                      out push("<tbody>")
+                      inTable = true
+                      i = i + 1 // skip separator line
                     } ifFalse {
-                      out push("<p>" + self _inline(line))
-                      inParagraph = true
+                      // No separator — treat as data rows
+                      cells = self _parseTableCells(trimmed)
+                      tableAligns = Array new()
+                      out push("<table style=\"border-collapse: collapse\">")
+                      out push("<tbody>")
+                      out push(self _tableRow(cells, "td", tableAligns))
+                      inTable = true
+                    }
+                  } ifTrue {
+                    // Continuing table — data row
+                    cells = self _parseTableCells(trimmed)
+                    out push(self _tableRow(cells, "td", tableAligns))
+                  }
+                } ifFalse {
+                  // Close table if we were in one
+                  self _closeTable(out, inTable) ifTrue { inTable = false }
+
+                  // Check for list item (with indent support)
+                  indent = self _indentLevel(line)
+                  stripped = line trim
+                  listInfo = self _listItemInfo(stripped)
+                  isListItem = listInfo at(0)
+
+                  (isListItem == true) ifTrue {
+                    self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+                    itemType = listInfo at(1)
+                    itemText = listInfo at(2)
+                    depth = indent / 2
+
+                    // Close deeper lists if we've dedented
+                    { listStack size > (depth + 1) } whileTrue {
+                      tag = listStack at(listStack size - 1)
+                      (tag == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
+                      listStack pop
+                    }
+
+                    // Open new list or switch type at current depth
+                    (listStack size <= depth) ifTrue {
+                      // Need to open lists up to this depth
+                      { listStack size <= depth } whileTrue {
+                        (itemType == "ul") ifTrue { out push("<ul>") } ifFalse { out push("<ol>") }
+                        listStack push(itemType)
+                      }
+                    } ifFalse {
+                      // Check if type matches at current depth
+                      curType = listStack at(depth)
+                      (curType != itemType) ifTrue {
+                        (curType == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
+                        listStack pop
+                        (itemType == "ul") ifTrue { out push("<ul>") } ifFalse { out push("<ol>") }
+                        listStack push(itemType)
+                      }
+                    }
+
+                    out push(self _listItem(itemType, itemText, listInfo at(3)))
+                  } ifFalse {
+                    // Check for blank line
+                    (trimmed length == 0) ifTrue {
+                      self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+                      self _closeAllLists(out, listStack)
+                      listStack = Array new()
+                    } ifFalse {
+                      // Regular text line — paragraph
+                      self _closeAllLists(out, listStack)
+                      listStack = Array new()
+                      inParagraph ifTrue {
+                        out push(self _inline(line))
+                      } ifFalse {
+                        out push("<p>" + self _inline(line))
+                        inParagraph = true
+                      }
                     }
                   }
                 }
@@ -160,9 +234,9 @@ Markdown = Object clone {
 
     // Close any open blocks
     inParagraph ifTrue { out push("</p>") }
-    inList ifTrue {
-      (listType == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
-    }
+    self _closeAllLists(out, listStack)
+    self _closeTable(out, inTable)
+    self _closeBlockquote(out, inBlockquote, bqLines)
     inCodeBlock ifTrue {
       out push("<pre><code>" + codeLines join("\n") + "</code></pre>")
     }
@@ -170,12 +244,157 @@ Markdown = Object clone {
     out join("\n")
   }
 
+  // --- Close helpers (return true if something was closed) ---
+
+  _closeParagraph(out, flag) {
+    flag ifTrue {
+      out push("</p>")
+      true
+    } ifFalse { false }
+  }
+
+  _closeAllLists(out, stack) {
+    { stack size > 0 } whileTrue {
+      tag = stack at(stack size - 1)
+      (tag == "ul") ifTrue { out push("</ul>") } ifFalse { out push("</ol>") }
+      stack pop
+    }
+  }
+
+  _closeTable(out, flag) {
+    flag ifTrue {
+      out push("</tbody>")
+      out push("</table>")
+      true
+    } ifFalse { false }
+  }
+
+  _closeBlockquote(out, flag, lines) {
+    flag ifTrue {
+      // Render blockquote content through render() recursively
+      inner = lines join("\n")
+      rendered = self _inline(inner)
+      out push("<blockquote><p>" + rendered + "</p></blockquote>")
+      true
+    } ifFalse { false }
+  }
+
+  // --- List helpers ---
+
+  _indentLevel(line) {
+    count = 0
+    idx = 0
+    { idx < line length } whileTrue {
+      ch = line at(idx)
+      (ch == " ") ifTrue {
+        count = count + 1
+        idx = idx + 1
+      } ifFalse {
+        idx = line length // break
+      }
+    }
+    count
+  }
+
+  _listItemInfo(stripped) {
+    // Returns [isListItem, type, content, number]
+    (stripped startsWith("- ")) ifTrue {
+      [true, "ul", stripped slice(2, stripped length), 0]
+    } ifFalse {
+      (stripped startsWith("* ")) ifTrue {
+        [true, "ul", stripped slice(2, stripped length), 0]
+      } ifFalse {
+        (stripped startsWith("+ ")) ifTrue {
+          [true, "ul", stripped slice(2, stripped length), 0]
+        } ifFalse {
+          isOL = self _isOrderedList(stripped)
+          isOL ifTrue {
+            dotPos = stripped indexOf(". ")
+            num = stripped slice(0, dotPos) toInt
+            [true, "ol", stripped slice(dotPos + 2, stripped length), num]
+          } ifFalse {
+            [false, "", "", 0]
+          }
+        }
+      }
+    }
+  }
+
+  _listItem(itemType, text, num) {
+    (itemType == "ol") ifTrue {
+      "<li value=\"" + num toString + "\">" + self _inline(text) + "</li>"
+    } ifFalse {
+      "<li>" + self _inline(text) + "</li>"
+    }
+  }
+
+  // --- Table helpers ---
+
+  _parseTableCells(row) {
+    // Split "|col1|col2|" into ["col1", "col2"]
+    cells = Array new()
+    parts = row split("|")
+    idx = 0
+    { idx < parts size } whileTrue {
+      cell = parts at(idx) trim
+      // Skip empty parts from leading/trailing |
+      (cell length > 0) ifTrue {
+        cells push(cell)
+      }
+      idx = idx + 1
+    }
+    cells
+  }
+
+  _parseAligns(sepRow) {
+    // Parse "| :--- | :---: | ---: |" into alignment array
+    aligns = Array new()
+    parts = sepRow split("|")
+    idx = 0
+    { idx < parts size } whileTrue {
+      cell = parts at(idx) trim
+      (cell length > 0) ifTrue {
+        leftColon = cell startsWith(":")
+        rightColon = cell endsWith(":")
+        (leftColon && rightColon) ifTrue {
+          aligns push("center")
+        } ifFalse {
+          rightColon ifTrue {
+            aligns push("right")
+          } ifFalse {
+            aligns push("left")
+          }
+        }
+      }
+      idx = idx + 1
+    }
+    aligns
+  }
+
+  _tableRow(cells, tag, aligns) {
+    row = "<tr>"
+    idx = 0
+    { idx < cells size } whileTrue {
+      cell = cells at(idx)
+      content = self _inline(cell)
+      styles = "border: 1px solid #ddd; padding: 6px 13px"
+      (idx < aligns size) ifTrue {
+        a = aligns at(idx)
+        (a != "left") ifTrue {
+          styles = styles + "; text-align: " + a
+        }
+      }
+      row = row + "<" + tag + " style=\"" + styles + "\">" + content + "</" + tag + ">"
+      idx = idx + 1
+    }
+    row = row + "</tr>"
+    row
+  }
+
   _isOrderedList(line) {
-    // Check if line starts with digits followed by ". "
-    (line length() < 3) ifTrue { false } ifFalse {
+    (line length < 3) ifTrue { false } ifFalse {
       dotPos = line indexOf(". ")
       (dotPos < 1) ifTrue { false } ifFalse {
-        // Check all chars before dotPos are digits
         allDigits = true
         j = 0
         { j < dotPos } whileTrue {
@@ -200,30 +419,25 @@ Markdown = Object clone {
   }
 
   _inline(s) {
-    // Process images first: ![alt](src)
     result = self _replaceImages(s)
-    // Process links: [text](url)
     result = self _replaceLinks(result)
-    // Process bold: **text**
     result = self _replacePair(result, "**", "<strong>", "</strong>")
-    // Process italic: *text*
     result = self _replacePair(result, "*", "<em>", "</em>")
-    // Process inline code: `text`
     result = self _replacePair(result, "`", "<code>", "</code>")
     result
   }
 
   _replacePair(s, marker, openTag, closeTag) {
     result = s
-    mlen = marker length()
+    mlen = marker length
     pos = result indexOf(marker)
     { pos >= 0 } whileTrue {
-      rest = result slice(pos + mlen, result length())
+      rest = result slice(pos + mlen, result length)
       endPos = rest indexOf(marker)
       (endPos >= 0) ifTrue {
         before = result slice(0, pos)
         inner = rest slice(0, endPos)
-        after = rest slice(endPos + mlen, rest length())
+        after = rest slice(endPos + mlen, rest length)
         result = before + openTag + inner + closeTag + after
         pos = result indexOf(marker)
       } ifFalse {
@@ -237,7 +451,7 @@ Markdown = Object clone {
     result = s
     pos = result indexOf("[")
     { pos >= 0 } whileTrue {
-      rest = result slice(pos, result length())
+      rest = result slice(pos, result length)
       midPos = rest indexOf("](")
       (midPos >= 0) ifTrue {
         endPos = rest indexOf(")")
@@ -245,7 +459,7 @@ Markdown = Object clone {
           text = rest slice(1, midPos)
           url = rest slice(midPos + 2, endPos)
           before = result slice(0, pos)
-          after = result slice(pos + endPos + 1, result length())
+          after = result slice(pos + endPos + 1, result length)
           tag = "<a href=\"" + url + "\">" + text + "</a>"
           result = before + tag + after
           pos = result indexOf("[")
@@ -263,7 +477,7 @@ Markdown = Object clone {
     result = s
     pos = result indexOf("![")
     { pos >= 0 } whileTrue {
-      rest = result slice(pos, result length())
+      rest = result slice(pos, result length)
       midPos = rest indexOf("](")
       (midPos >= 0) ifTrue {
         endPos = rest indexOf(")")
@@ -271,7 +485,7 @@ Markdown = Object clone {
           alt = rest slice(2, midPos)
           src = rest slice(midPos + 2, endPos)
           before = result slice(0, pos)
-          after = result slice(pos + endPos + 1, result length())
+          after = result slice(pos + endPos + 1, result length)
           tag = "<img src=\"" + src + "\" alt=\"" + alt + "\">"
           result = before + tag + after
           pos = result indexOf("![")
