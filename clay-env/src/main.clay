@@ -1,0 +1,91 @@
+// clay-env -- Environment variable management with .env file support
+//
+// Usage:
+//   import("clay-env")
+//
+//   Env load(".env")         // load .env file (returns Dict of loaded vars)
+//   Env get("PORT", "3000")  // get env var with default
+//   Env require("API_KEY")   // get env var, raises error if missing
+
+Env = Object clone {
+    _vars = nil
+
+    // Load a .env file. Returns Dict of key-value pairs.
+    // Lines starting with # are comments. Empty lines are skipped.
+    // Supports: KEY=VALUE, KEY="VALUE", KEY='VALUE'
+    load(path) {
+        content = File read(path)
+        lines = content split("\n")
+        result = Dict new()
+
+        lines each { |line|
+            trimmed = line trim()
+
+            // Skip empty lines and comments
+            (trimmed length() > 0 && trimmed startsWith("#") == false) ifTrue {
+                eqIdx = trimmed indexOf("=")
+                (eqIdx != -1 && eqIdx > 0) ifTrue {
+                    key = trimmed slice(0, eqIdx) trim()
+                    val = trimmed slice(eqIdx + 1, trimmed length()) trim()
+
+                    // Strip surrounding quotes
+                    (val length() >= 2) ifTrue {
+                        first = val at(0)
+                        last = val at(val length() - 1)
+                        ((first == "\"" && last == "\"") || (first == "'" && last == "'")) ifTrue {
+                            val = val slice(1, val length() - 1)
+                        }
+                    }
+
+                    result set(key, val)
+                }
+            }
+        }
+
+        _vars = result
+        result
+    }
+
+    // Get an environment variable with an optional default.
+    // Checks loaded .env vars first, then System env.
+    get(name, default) {
+        result = default
+        found = false
+        (_vars != nil) ifTrue {
+            (_vars has(name)) ifTrue { result = _vars get(name); found = true }
+        }
+        (found == false) ifTrue {
+            val = System env(name)
+            (val != nil) ifTrue { result = val }
+        }
+        result
+    }
+
+    // Get an environment variable, raise an error if not set.
+    require(name) {
+        val = self get(name, nil)
+        (val == nil) ifTrue {
+            ("Required environment variable not set: " + name) println
+            System exit(1)
+        }
+        val
+    }
+
+    // Check if an environment variable is set
+    has(name) {
+        result = false
+        (_vars != nil) ifTrue {
+            (_vars has(name)) ifTrue { result = true }
+        }
+        (result == false) ifTrue {
+            val = System env(name)
+            (val != nil) ifTrue { result = true }
+        }
+        result
+    }
+
+    // Get all loaded variables as a Dict
+    all() {
+        (_vars == nil) ifTrue { Dict new() } ifFalse { _vars }
+    }
+}

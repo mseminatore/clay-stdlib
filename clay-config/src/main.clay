@@ -1,0 +1,111 @@
+// clay-config -- INI-style configuration file parser
+//
+// Usage:
+//   import("clay-config")
+//
+//   cfg = Config parseFile("app.ini")
+//   cfg get("database") get("host")    // section "database", key "host"
+//
+//   Config get(cfg, "database", "port", "5432")  // with default
+//
+// Format:
+//   # comment
+//   ; also a comment
+//   [section]
+//   key = value
+//   key2 = value2
+//
+//   Keys before any [section] go into the "" (empty string) section.
+
+Config = Object clone {
+
+    // Parse an INI config string into a Dict of Dicts
+    // { "section1": { "key": "val", ... }, ... }
+    parse(str) {
+        lines = str split("\n")
+        result = Dict new()
+        currentSection = ""
+        result set(currentSection, Dict new())
+
+        lines each { |line|
+            trimmed = line trim()
+
+            // Skip empty lines and comments
+            skip = (trimmed length() == 0 || trimmed startsWith("#") || trimmed startsWith(";"))
+            (skip == false) ifTrue {
+                // Section header
+                (trimmed startsWith("[") && trimmed endsWith("]")) ifTrue {
+                    currentSection = trimmed slice(1, trimmed length() - 1) trim()
+                    (result has(currentSection) == false) ifTrue {
+                        result set(currentSection, Dict new())
+                    }
+                } ifFalse {
+                    // Key = value pair
+                    eqIdx = trimmed indexOf("=")
+                    (eqIdx != -1 && eqIdx > 0) ifTrue {
+                        key = trimmed slice(0, eqIdx) trim()
+                        val = trimmed slice(eqIdx + 1, trimmed length()) trim()
+
+                        // Strip surrounding quotes
+                        (val length() >= 2) ifTrue {
+                            first = val at(0)
+                            last = val at(val length() - 1)
+                            ((first == "\"" && last == "\"") || (first == "'" && last == "'")) ifTrue {
+                                val = val slice(1, val length() - 1)
+                            }
+                        }
+
+                        section = result get(currentSection)
+                        section set(key, val)
+                    }
+                }
+            }
+        }
+
+        result
+    }
+
+    // Parse a config file by path
+    parseFile(path) {
+        content = File read(path)
+        self parse(content)
+    }
+
+    // Get a value from a parsed config with a default
+    // Config get(cfg, "section", "key", "default")
+    get(config, section, key, default) {
+        result = default
+        (config has(section)) ifTrue {
+            sec = config get(section)
+            (sec has(key)) ifTrue {
+                result = sec get(key)
+            }
+        }
+        result
+    }
+
+    // Get all section names
+    sections(config) {
+        config keys()
+    }
+
+    // Merge two configs (second overrides first)
+    merge(base, override) {
+        result = Dict new()
+        base keys() each { |section|
+            result set(section, Dict new())
+            base get(section) keys() each { |key|
+                result get(section) set(key, base get(section) get(key))
+            }
+        }
+        override keys() each { |section|
+            (result has(section) == false) ifTrue {
+                result set(section, Dict new())
+            }
+            override get(section) keys() each { |key|
+                result get(section) set(key, override get(section) get(key))
+            }
+        }
+        result
+    }
+}

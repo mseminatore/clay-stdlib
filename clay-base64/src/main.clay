@@ -1,0 +1,104 @@
+// clay-base64 -- Base64 encoding and decoding
+//
+// Usage:
+//   import("clay-base64")
+//
+//   Base64 encode("Hello, World!")   // "SGVsbG8sIFdvcmxkIQ=="
+//   Base64 decode("SGVsbG8sIFdvcmxkIQ==")   // "Hello, World!"
+
+Base64 = Object clone {
+    _chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+    _ordMap = nil
+
+    // Build char -> ASCII code lookup (lazy, once)
+    _ensureOrdMap() {
+        (_ordMap == nil) ifTrue {
+            _ordMap = Dict new()
+            i = 0
+            { i < 128 } whileTrue {
+                ch = "" chr(i)
+                _ordMap set(ch, i)
+                i = i + 1
+            }
+        }
+    }
+
+    // Get ASCII code of a single character
+    _ord(ch) {
+        self _ensureOrdMap()
+        _ordMap get(ch)
+    }
+
+    // Encode a string to Base64
+    encode(str) {
+        chars = _chars
+        len = str length()
+        result = ""
+        i = 0
+
+        { i < len } whileTrue {
+            // Read up to 3 bytes
+            b0 = self _ord(str at(i))
+            b1 = (i + 1 < len) ifTrue { self _ord(str at(i + 1)) } ifFalse { 0 }
+            b2 = (i + 2 < len) ifTrue { self _ord(str at(i + 2)) } ifFalse { 0 }
+
+            // Encode to 4 base64 chars
+            result = result + chars at(b0 / 4)
+            result = result + chars at((b0 % 4) * 16 + b1 / 16)
+
+            (i + 1 < len) ifTrue {
+                result = result + chars at((b1 % 16) * 4 + b2 / 64)
+            } ifFalse {
+                result = result + "="
+            }
+
+            (i + 2 < len) ifTrue {
+                result = result + chars at(b2 % 64)
+            } ifFalse {
+                result = result + "="
+            }
+
+            i = i + 3
+        }
+
+        result
+    }
+
+    // Decode a Base64 string
+    decode(str) {
+        chars = _chars
+        len = str length()
+        result = ""
+        i = 0
+
+        { i < len } whileTrue {
+            c0 = chars indexOf(str at(i))
+            c1 = (i + 1 < len) ifTrue { chars indexOf(str at(i + 1)) } ifFalse { 0 }
+            c2 = (i + 2 < len) ifTrue {
+                (str at(i + 2) == "=") ifTrue { 0 } ifFalse { chars indexOf(str at(i + 2)) }
+            } ifFalse { 0 }
+            c3 = (i + 3 < len) ifTrue {
+                (str at(i + 3) == "=") ifTrue { 0 } ifFalse { chars indexOf(str at(i + 3)) }
+            } ifFalse { 0 }
+
+            // Decode 4 base64 chars to 3 bytes
+            result = result + "" chr(c0 * 4 + c1 / 16)
+
+            (i + 2 < len) ifTrue {
+                (str at(i + 2) != "=") ifTrue {
+                    result = result + "" chr((c1 % 16) * 16 + c2 / 4)
+                }
+            }
+
+            (i + 3 < len) ifTrue {
+                (str at(i + 3) != "=") ifTrue {
+                    result = result + "" chr((c2 % 4) * 64 + c3)
+                }
+            }
+
+            i = i + 4
+        }
+
+        result
+    }
+}
