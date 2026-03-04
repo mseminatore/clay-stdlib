@@ -1,3 +1,14 @@
+// clay-queue -- SQLite-backed persistent job queue
+//
+// Usage:
+//   import("clay-queue")
+//
+//   db = Db open("app.db")
+//   queue = JobQueue new(db, "jobs")
+//   queue push("email", "user_id=42")
+//   job = queue pop()
+//   queue complete(job)
+
 JobQueue = Object clone {
   new(db, tableName) {
     q = JobQueue clone

@@ -1,3 +1,11 @@
+// clay-markdown -- Markdown to HTML converter
+//
+// Usage:
+//   import("clay-markdown")
+//
+//   Markdown render("# Hello\n\nThis is **bold** and *italic*.")
+//   // => "<h1>Hello</h1>\n<p>This is <strong>bold</strong> and <em>italic</em>.</p>"
+
 Markdown = Object clone {
   render(md) {
     lines = md split("\n")

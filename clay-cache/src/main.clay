@@ -1,3 +1,14 @@
+// clay-cache -- In-memory LRU/TTL key-value cache
+//
+// Usage:
+//   import("clay-cache")
+//
+//   cache = Cache new() maxSize(100) ttl(60)
+//   cache set("name", "Alice")
+//   cache get("name")   // => "Alice"
+//   cache has("name")   // => true
+//   cache size()        // => 1
+
 Cache = Object clone {
   new() {
     c = self clone
