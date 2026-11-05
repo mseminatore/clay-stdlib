@@ -46,3 +46,7 @@ import("clay-stdlib/clay-collections")
 | [clay-url](clay-url/) | URL parsing, building, and percent encoding |
 | [clay-uuid](clay-uuid/) | UUID v4 generation |
 | [clay-validate](clay-validate/) | Schema validation for Dicts |
+
+## License
+
+MIT — see [LICENSE](LICENSE). Applies to every brick in this repository.
