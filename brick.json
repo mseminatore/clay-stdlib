@@ -25,6 +25,11 @@
     "clay-stdlib/clay-markdown": "github.com/mseminatore/clay-stdlib/clay-markdown",
     "clay-stdlib/clay-queue": "github.com/mseminatore/clay-stdlib/clay-queue",
     "clay-stdlib/clay-uuid": "github.com/mseminatore/clay-stdlib/clay-uuid",
-    "clay-stdlib/clay-validate": "github.com/mseminatore/clay-stdlib/clay-validate"
+    "clay-stdlib/clay-validate": "github.com/mseminatore/clay-stdlib/clay-validate",
+    "clay-stdlib/clay-base64": "github.com/mseminatore/clay-stdlib/clay-base64",
+    "clay-stdlib/clay-config": "github.com/mseminatore/clay-stdlib/clay-config",
+    "clay-stdlib/clay-enum": "github.com/mseminatore/clay-stdlib/clay-enum",
+    "clay-stdlib/clay-env": "github.com/mseminatore/clay-stdlib/clay-env",
+    "clay-stdlib/clay-url": "github.com/mseminatore/clay-stdlib/clay-url"
   }
 }

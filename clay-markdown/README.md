@@ -8,17 +8,27 @@ Markdown to HTML converter for Clay.
 import("clay-stdlib/clay-markdown")
 
 md = Markdown render("# Hello\n\nThis is **bold** and *italic*.")
-// => "<h1>Hello</h1>\n<p>This is <strong>bold</strong> and <em>italic</em>.</p>"
+// => "<h1 id=\"hello\">Hello</h1>\n<p>This is <strong>bold</strong> and <em>italic</em>.</p>"
+
+page = Markdown renderPage(md, "Hello")   // a complete HTML document
 ```
+
+`render` returns an HTML fragment. `renderPage(md, title)` wraps it in a
+complete document — `<meta charset="utf-8">` (so non-ASCII text such as `—`
+shows correctly), a `<title>` and a small stylesheet for code, tables and
+quotes.
+
+Text is HTML-escaped (`&`, `<`, `>`), so it can't inject markup. Code spans
+and code blocks are literal: no emphasis, links or escapes inside them.
 
 ## Supported Syntax
 
 | Markdown | HTML |
 |---|---|
-| `# Heading` through `###### Heading` | `<h1>` through `<h6>` |
+| `# Heading` through `###### Heading` | `<h1 id="heading">` through `<h6>` (GitHub-style anchors) |
 | `**bold**` | `<strong>bold</strong>` |
 | `*italic*` | `<em>italic</em>` |
-| `` `code` `` | `<code>code</code>` |
+| `` `code` `` | `<code>code</code>` (literal, escaped) |
 | `[text](url)` | `<a href="url">text</a>` |
 | `![alt](src)` | `<img src="src" alt="alt">` |
 | `- item`, `* item`, or `+ item` | `<ul><li>item</li></ul>` |
@@ -26,7 +36,7 @@ md = Markdown render("# Hello\n\nThis is **bold** and *italic*.")
 | Indented list items (`  - sub`) | Nested `<ul>`/`<ol>` |
 | `\| col \| col \|` with separator | `<table>` with `<thead>`/`<tbody>` |
 | `> quote` | `<blockquote>` |
-| ` ``` ` fenced code blocks | `<pre><code>...</code></pre>` |
+| ` ``` ` fenced code blocks (or longer fences) | `<pre><code>...</code></pre>`; ` ```clay ` adds `class="language-clay"` |
 | `---`, `***`, `___` | `<hr>` |
 | Blank lines | Paragraph breaks (`<p>`) |
 
@@ -36,7 +46,7 @@ md = Markdown render("# Hello\n\nThis is **bold** and *italic*.")
 
 ```clay
 Markdown render("# Title\n## Subtitle")
-// => "<h1>Title</h1>\n<h2>Subtitle</h2>"
+// => "<h1 id=\"title\">Title</h1>\n<h2 id=\"subtitle\">Subtitle</h2>"
 ```
 
 ### Lists

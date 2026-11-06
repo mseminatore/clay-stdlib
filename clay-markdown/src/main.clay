@@ -4,7 +4,12 @@
 //   import("clay-markdown")
 //
 //   Markdown render("# Hello\n\nThis is **bold** and *italic*.")
-//   // => "<h1>Hello</h1>\n<p>This is <strong>bold</strong> and <em>italic</em>.</p>"
+//   // => "<h1 id=\"hello\">Hello</h1>\n<p>This is <strong>bold</strong> and <em>italic</em>.</p>"
+//
+//   Markdown renderPage(md, "Title")   // a complete UTF-8 HTML document
+//
+// Text and code are HTML-escaped (& < >); code spans and code blocks are
+// taken literally (no emphasis or links inside them).
 
 Markdown = Object clone {
   render(md) {
@@ -13,20 +18,26 @@ Markdown = Object clone {
     inCodeBlock = false
     inParagraph = false
     codeLines = Array new()
+    codeLang = ""
+    codeFence = 3
     inTable = false
     tableAligns = Array new()
     inBlockquote = false
     bqLines = Array new()
     // List nesting: listStack tracks open list types at each depth
     listStack = Array new()
+    // the open list item: [type, text, number, index in out] (its later
+    // lines are appended until the list ends)
+    lastItem = nil
     i = 0
 
     { i < lines size() } whileTrue {
       line = lines at(i)
 
       inCodeBlock ifTrue {
-        (line trim() startsWith("```")) ifTrue {
-          out push("<pre><code>" + codeLines join("\n") + "</code></pre>")
+        // closed by a run of at least as many backticks as opened it
+        (line trim() startsWith("`" repeat(codeFence))) ifTrue {
+          out push(self _codeBlock(codeLines, codeLang))
           codeLines = Array new()
           inCodeBlock = false
         } ifFalse {
@@ -47,6 +58,8 @@ Markdown = Object clone {
           }
           inCodeBlock = true
           codeLines = Array new()
+          codeFence = self _backtickRun(trimmed)
+          codeLang = self _fenceLanguage(trimmed slice(codeFence, trimmed length))
         } ifFalse {
           // Check for horizontal rule
           isHR = false
@@ -90,9 +103,10 @@ Markdown = Object clone {
               (line startsWith("### ")) ifTrue { level = 3 }
               (line startsWith("## ")) ifTrue { level = 2 }
               (line startsWith("# ")) ifTrue { level = 1 }
-              content = line slice(level + 1, line length())
-              content = self _inline(content)
-              out push("<h" + level toString + ">" + content + "</h" + level toString + ">")
+              raw = line slice(level + 1, line length()) trim
+              content = self _inline(raw)
+              out push("<h" + level toString + " id=\"" + (self _slug(raw)) + "\">" + content +
+                       "</h" + level toString + ">")
             } ifFalse {
               // Check for blockquote
               isBlockquote = false
@@ -211,6 +225,7 @@ Markdown = Object clone {
                       }
                     }
 
+                    lastItem = [itemType, itemText, listInfo at(3), out size]
                     out push(self _listItem(itemType, itemText, listInfo at(3)))
                   } ifFalse {
                     // Check for blank line
@@ -219,6 +234,13 @@ Markdown = Object clone {
                       self _closeAllLists(out, listStack)
                       listStack = Array new()
                     } ifFalse {
+                      (listStack size > 0 && lastItem != nil) ifTrue {
+                        // a continuation line of the open list item
+                        lastItem setAt(1, (lastItem at(1)) + " " + trimmed)
+                        out setAt(lastItem at(3), self _listItem(lastItem at(0), lastItem at(1), lastItem at(2)))
+                        i = i + 1
+                        continue
+                      }
                       // Regular text line — paragraph
                       self _closeAllLists(out, listStack)
                       listStack = Array new()
@@ -246,7 +268,7 @@ Markdown = Object clone {
     self _closeTable(out, inTable)
     self _closeBlockquote(out, inBlockquote, bqLines)
     inCodeBlock ifTrue {
-      out push("<pre><code>" + codeLines join("\n") + "</code></pre>")
+      out push(self _codeBlock(codeLines, codeLang))
     }
 
     out join("\n")
@@ -339,18 +361,32 @@ Markdown = Object clone {
   // --- Table helpers ---
 
   _parseTableCells(row) {
-    // Split "|col1|col2|" into ["col1", "col2"]
+    // Split "| col1 | col2 |" into ["col1", "col2"]: a `|` inside a code
+    // span or written `\|` doesn't split
     cells = Array new()
-    parts = row split("|")
+    cell = ""
+    inCode = false
     idx = 0
-    { idx < parts size } whileTrue {
-      cell = parts at(idx) trim
-      // Skip empty parts from leading/trailing |
-      (cell length > 0) ifTrue {
-        cells push(cell)
+    n = row length
+    { idx < n } whileTrue {
+      ch = row at(idx)
+      (ch == "\\" && idx + 1 < n && (row at(idx + 1)) == "|") ifTrue {
+        cell = cell + "|"
+        idx = idx + 2
+      } ifFalse {
+        (ch == "`") ifTrue { inCode = inCode not }
+        (ch == "|" && inCode not) ifTrue {
+          cells push(cell trim)
+          cell = ""
+        } ifFalse {
+          cell = cell + ch
+        }
+        idx = idx + 1
       }
-      idx = idx + 1
     }
+    (cell trim length > 0) ifTrue { cells push(cell trim) }
+    // the empty cell before a leading `|`
+    (cells size > 0 && (cells at(0)) length == 0) ifTrue { cells shift }
     cells
   }
 
@@ -426,14 +462,122 @@ Markdown = Object clone {
     }
   }
 
+  // Inline markup. Code spans first: their text is escaped and kept out of
+  // the other rules (held as placeholders while the rest is processed).
   _inline(s) {
-    result = self _replaceImages(s)
+    codes = Array new()
+    text = self _extractCode(s, codes)
+    result = self _escape(text)
+    result = self _replaceImages(result)
     result = self _replaceLinks(result)
     result = self _replacePair(result, "**", "<strong>", "</strong>")
     result = self _replacePair(result, "*", "<em>", "</em>")
-    result = self _replacePair(result, "`", "<code>", "</code>")
+    idx = 0
+    { idx < codes size } whileTrue {
+      result = result replace(self _codeMark(idx), "<code>" + (codes at(idx)) + "</code>")
+      idx = idx + 1
+    }
     result
   }
+
+  // \x01<n>\x02 stands for code span n while the other rules run
+  _codeMark(n) { (String chr(1)) + n toString + (String chr(2)) }
+
+  // Replace each code span (a run of backticks up to the same run) with a
+  // placeholder; its escaped content goes into codes
+  _extractCode(s, codes) {
+    out = ""
+    idx = 0
+    n = s length
+    { idx < n } whileTrue {
+      ((s at(idx)) == "`") ifTrue {
+        ticks = 0
+        { idx + ticks < n && (s at(idx + ticks)) == "`" } whileTrue { ticks = ticks + 1 }
+        fence = "`" repeat(ticks)
+        rest = s slice(idx + ticks, n)
+        close = rest indexOf(fence)
+        (close >= 0) ifTrue {
+          inner = rest slice(0, close)
+          // one space of padding on both sides is dropped (`` `x` ``)
+          (inner length >= 2 && (inner startsWith(" ")) && (inner endsWith(" "))) ifTrue {
+            inner = inner slice(1, inner length - 1)
+          }
+          out = out + (self _codeMark(codes size))
+          codes push(self _escape(inner))
+          idx = idx + ticks + close + ticks
+        } ifFalse {
+          out = out + fence
+          idx = idx + ticks
+        }
+      } ifFalse {
+        out = out + (s at(idx))
+        idx = idx + 1
+      }
+    }
+    out
+  }
+
+  // & < > as entities
+  _escape(s) {
+    ((s replace("&", "&amp;")) replace("<", "&lt;")) replace(">", "&gt;")
+  }
+
+  _backtickRun(s) {
+    n = 0
+    { n < s length && (s at(n)) == "`" } whileTrue { n = n + 1 }
+    n
+  }
+
+  // the info after a fence ("clay norun") -> "clay"
+  _fenceLanguage(info0) {
+    info = info0 trim
+    sp = info indexOf(" ")
+    (sp >= 0) ifTrue { info = info slice(0, sp) }
+    info
+  }
+
+  _codeBlock(codeLines, lang) {
+    body = self _escape(codeLines join("\n"))
+    (lang length > 0) ifTrue {
+      return "<pre><code class=\"language-" + (self _escape(lang)) + "\">" + body + "</code></pre>"
+    }
+    "<pre><code>" + body + "</code></pre>"
+  }
+
+  // GitHub-style heading anchor: "Implicit self in methods" -> "implicit-self-in-methods"
+  _slug(text) {
+    plain = text replace("`", "")
+    plain = plain replace("*", "")
+    plain = plain lower
+    slug = ""
+    idx = 0
+    { idx < plain length } whileTrue {
+      ch = plain at(idx)
+      c = plain byteAt(idx)
+      ok = (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || ch == "-" || ch == "_" || c >= 128
+      ok ifTrue { slug = slug + ch }
+      (ch == " ") ifTrue { slug = slug + "-" }
+      idx = idx + 1
+    }
+    slug
+  }
+
+  // A complete HTML document (UTF-8) around render(md)
+  renderPage(md, title = "") {
+    "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n" +
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+    "<title>" + (self _escape(title)) + "</title>\n<style>\n" + pageStyle + "</style>\n</head>\n" +
+    "<body>\n" + (self render(md)) + "\n</body>\n</html>\n"
+  }
+
+  pageStyle = "body { max-width: 52em; margin: 2em auto; padding: 0 1em; font: 16px/1.55 -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; color: #1f2328; }\n" +
+    "code { font: 0.875em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #eff1f3; padding: 0.15em 0.35em; border-radius: 4px; }\n" +
+    "pre { background: #f6f8fa; padding: 1em; overflow-x: auto; border-radius: 6px; line-height: 1.45; }\n" +
+    "pre code { background: none; padding: 0; font-size: 0.85em; }\n" +
+    "table { border-collapse: collapse; margin: 1em 0; }\n" +
+    "blockquote { margin: 0; padding: 0 1em; color: #59636e; border-left: 0.25em solid #d1d9e0; }\n" +
+    "h1, h2 { border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }\n" +
+    "a { color: #0969da; }\n"
 
   _replacePair(s, marker, openTag, closeTag) {
     result = s
