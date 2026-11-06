@@ -1,0 +1,5 @@
+{
+    "name": "stdlib/log",
+    "version": "0.1.0",
+    "main": "src/main.clay"
+}

@@ -1,0 +1,7 @@
+{
+    "name": "stdlib/args",
+    "version": "0.1.0",
+    "description": "CLI argument parsing for Clay",
+    "main": "src/main.clay",
+    "deps": {}
+}

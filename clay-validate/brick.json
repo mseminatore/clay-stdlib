@@ -1,7 +1,0 @@
-{
-    "name": "clay-validate",
-    "version": "0.1.0",
-    "description": "Schema validation for Dicts",
-    "main": "src/main.clay",
-    "deps": {}
-}

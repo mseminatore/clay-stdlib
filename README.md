@@ -1,51 +1,58 @@
-# clay-stdlib
+# stdlib
 
 The Clay standard library — a collection of bricks providing common functionality for Clay programs.
 
 ## Installation
 
 ```sh
-clay bricks add github.com/user/clay-stdlib#clay-collections
+clay bricks add github.com/mseminatore/clay-stdlib stdlib
 ```
 
-Import individual bricks by name:
+The second argument names the brick `stdlib`, which is both its directory under `bricks/` and its
+import path. Import everything at once:
 
 ```clay
-import("clay-stdlib/clay-json")
-import("clay-stdlib/clay-collections")
+import("stdlib")
+```
+
+or just the bricks you need:
+
+```clay
+import("stdlib/json")
+import("stdlib/collections")
 ```
 
 ## Bricks
 
 | Brick | Description |
 |-------|-------------|
-| [clay-args](clay-args/) | CLI argument parsing |
-| [clay-base64](clay-base64/) | Base64 encoding and decoding |
-| [clay-cache](clay-cache/) | In-memory LRU/TTL key-value cache |
-| [clay-cli](clay-cli/) | ANSI terminal colors and styles for CLI tools |
-| [clay-collections](clay-collections/) | Data structures: Set, Stack, Queue, and Range |
-| [clay-config](clay-config/) | INI-style configuration file parser |
-| [clay-csv](clay-csv/) | CSV parsing and generation |
-| [clay-enum](clay-enum/) | Enum type with named constants |
-| [clay-env](clay-env/) | Environment variable management with .env file support |
-| [clay-event](clay-event/) | Event emitter (pub/sub) pattern |
-| [clay-format](clay-format/) | String formatting utilities |
-| [clay-functional](clay-functional/) | Functional programming utilities (map, filter, reduce, pipe) |
-| [clay-http-server](clay-http-server/) | Simple HTTP server with routing |
-| [clay-iter](clay-iter/) | Lazy iterator pipelines |
-| [clay-json](clay-json/) | JSON parsing and serialization |
-| [clay-log](clay-log/) | Structured logging with levels |
-| [clay-markdown](clay-markdown/) | Markdown to HTML converter |
-| [clay-match](clay-match/) | Pattern matching with a chainable API |
-| [clay-orm](clay-orm/) | ActiveRecord-style ORM over Clay's Db prototype |
-| [clay-path](clay-path/) | Path manipulation utilities |
-| [clay-queue](clay-queue/) | SQLite-backed persistent job queue |
-| [clay-router](clay-router/) | URL pattern matching with `:param` capture |
-| [clay-template](clay-template/) | String template engine using `{{placeholder}}` syntax |
-| [clay-test](clay-test/) | Simple, colorful testing framework |
-| [clay-url](clay-url/) | URL parsing, building, and percent encoding |
-| [clay-uuid](clay-uuid/) | UUID v4 generation |
-| [clay-validate](clay-validate/) | Schema validation for Dicts |
+| [args](args/) | CLI argument parsing |
+| [base64](base64/) | Base64 encoding and decoding |
+| [cache](cache/) | In-memory LRU/TTL key-value cache |
+| [cli](cli/) | ANSI terminal colors and styles for CLI tools |
+| [collections](collections/) | Data structures: Set, Stack, Queue |
+| [config](config/) | INI-style configuration file parser |
+| [csv](csv/) | CSV parsing and generation |
+| [enum](enum/) | Enum type with named constants |
+| [env](env/) | Environment variable management with .env file support |
+| [event](event/) | Event emitter (pub/sub) pattern |
+| [format](format/) | String formatting utilities |
+| [functional](functional/) | Functional programming utilities (map, filter, reduce, pipe) |
+| [http-server](http-server/) | Simple HTTP server with routing |
+| [iter](iter/) | Lazy iterator pipelines |
+| [json](json/) | JSON parsing and serialization |
+| [log](log/) | Structured logging with levels |
+| [markdown](markdown/) | Markdown to HTML converter |
+| [match](match/) | Pattern matching with a chainable API |
+| [orm](orm/) | ActiveRecord-style ORM over Clay's Db prototype |
+| [path](path/) | Path manipulation utilities |
+| [queue](queue/) | SQLite-backed persistent job queue |
+| [router](router/) | URL pattern matching with `:param` capture |
+| [template](template/) | String template engine using `{{placeholder}}` syntax |
+| [test](test/) | Simple, colorful testing framework |
+| [url](url/) | URL parsing, building, and percent encoding |
+| [uuid](uuid/) | UUID v4 generation |
+| [validate](validate/) | Schema validation for Dicts |
 
 ## License
 

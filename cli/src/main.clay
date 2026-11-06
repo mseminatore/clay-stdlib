@@ -1,0 +1,70 @@
+// stdlib/cli: ANSI terminal colors and styles
+//
+// NOTE: Requires String chr(code) to be available in the runtime.
+// _esc is initialized to ESC (ASCII 27) via String chr(27).
+
+Cli = Object clone {
+    _esc = String chr(27)
+
+    // Build an ANSI escape sequence: ESC[<code>m + text + ESC[0m
+    _wrap(code, s) {
+        self _esc + "[" + code + "m" + s + self _esc + "[0m"
+    }
+
+    // Foreground colors
+    red(s)     { self _wrap("31", s) }
+    green(s)   { self _wrap("32", s) }
+    yellow(s)  { self _wrap("33", s) }
+    blue(s)    { self _wrap("34", s) }
+    magenta(s) { self _wrap("35", s) }
+    cyan(s)    { self _wrap("36", s) }
+    white(s)   { self _wrap("37", s) }
+
+    // Background colors
+    bgRed(s)    { self _wrap("41", s) }
+    bgGreen(s)  { self _wrap("42", s) }
+    bgYellow(s) { self _wrap("43", s) }
+    bgBlue(s)   { self _wrap("44", s) }
+
+    // Styles
+    bold(s)      { self _wrap("1", s) }
+    dim(s)       { self _wrap("2", s) }
+    italic(s)    { self _wrap("3", s) }
+    underline(s) { self _wrap("4", s) }
+
+    // Custom ANSI foreground color code (e.g., 33 for yellow)
+    color(s, code) { self _wrap(code toString(), s) }
+
+    // Custom ANSI background color code (e.g., 41 for red bg)
+    bg(s, code) { self _wrap(code toString(), s) }
+
+    // Strip ANSI escape sequences from a string
+    // State machine: skip from ESC until 'm' is found
+    strip(s) {
+        result = ""
+        i = 0
+        esc = self _esc
+        inEsc = false
+        { i < s length() } whileTrue {
+            ch = s at(i)
+            i = i + 1
+            (inEsc) ifTrue {
+                (ch == "m") ifTrue {
+                    inEsc = false
+                }
+            } ifFalse {
+                (ch == esc) ifTrue {
+                    inEsc = true
+                } ifFalse {
+                    result = result + ch
+                }
+            }
+        }
+        result
+    }
+
+    // Convenience methods
+    success(s) { self bold(self green(s)) }
+    warning(s) { self bold(self yellow(s)) }
+    error(s)   { self bold(self red(s)) }
+}

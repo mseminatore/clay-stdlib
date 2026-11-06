@@ -1,0 +1,7 @@
+{
+  "name": "stdlib/env",
+  "version": "0.1.0",
+  "description": "Environment variable management with .env file support",
+  "main": "src/main.clay",
+  "deps": {}
+}

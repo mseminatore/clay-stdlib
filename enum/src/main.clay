@@ -1,0 +1,49 @@
+// stdlib/enum -- Enum type for Clay: named constants with integer values
+//
+// Usage:
+//   import("stdlib/enum")
+//
+//   Color = Enum from(["red", "green", "blue"])
+//   Color red         // → 0
+//   Color green       // → 1
+//   Color name(0)     // → "red"
+//   Color contains("red") // → true
+//   Color values      // → ["red", "green", "blue"]
+//   Color size        // → 3
+
+Enum = Object clone {
+    _names = []
+    _size = 0
+
+    from(names) {
+        e = Enum clone
+        e _names = names
+        e _size = names length
+        i = 0
+        names each { |name|
+            e setSlot(name, i)
+            i = i + 1
+        }
+        e
+    }
+
+    name(idx) {
+        (idx >= 0 && idx < _size) ifTrue {
+            _names at(idx)
+        } ifFalse {
+            nil
+        }
+    }
+
+    contains(n) {
+        _names contains(n)
+    }
+
+    values() { _names }
+
+    size() { _size }
+
+    toString() {
+        "Enum(" + _names toString() + ")"
+    }
+}

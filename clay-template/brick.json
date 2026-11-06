@@ -1,7 +1,0 @@
-{
-    "name": "clay-template",
-    "version": "0.1.0",
-    "description": "Simple string template engine for Clay",
-    "main": "src/main.clay",
-    "deps": {}
-}

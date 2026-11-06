@@ -1,0 +1,200 @@
+// stdlib/url -- URL parsing, building, and encoding
+//
+// Usage:
+//   import("stdlib/url")
+//
+//   parts = Url parse("https://example.com:8080/path?key=val#frag")
+//   parts get("protocol")  // "https"
+//   parts get("host")      // "example.com"
+//   parts get("port")      // "8080"
+//   parts get("path")      // "/path"
+//   parts get("query")     // "key=val"
+//   parts get("fragment")  // "frag"
+//
+//   Url build(parts)       // "https://example.com:8080/path?key=val#frag"
+//   Url parseQuery("a=1&b=2")  // Dict { "a": "1", "b": "2" }
+//   Url encodeComponent("hello world")  // "hello%20world"
+//   Url decodeComponent("hello%20world")  // "hello world"
+
+Url = Object clone {
+    _ordMap = nil
+    _hexChars = "0123456789ABCDEF"
+
+    _ensureOrdMap() {
+        (_ordMap == nil) ifTrue {
+            _ordMap = Dict new()
+            i = 0
+            { i < 128 } whileTrue {
+                ch = "" chr(i)
+                _ordMap set(ch, i)
+                i = i + 1
+            }
+        }
+    }
+
+    _ord(ch) {
+        self _ensureOrdMap()
+        _ordMap get(ch)
+    }
+
+    // Check if character is unreserved (RFC 3986)
+    _isUnreserved(ch) {
+        code = self _ord(ch)
+        // A-Z: 65-90, a-z: 97-122, 0-9: 48-57, '-': 45, '.': 46, '_': 95, '~': 126
+        result = false
+        (code >= 65 && code <= 90) ifTrue { result = true }
+        (code >= 97 && code <= 122) ifTrue { result = true }
+        (code >= 48 && code <= 57) ifTrue { result = true }
+        (ch == "-" || ch == "." || ch == "_" || ch == "~") ifTrue { result = true }
+        result
+    }
+
+    // Percent-encode a component
+    encodeComponent(str) {
+        hex = _hexChars
+        result = ""
+        i = 0
+        len = str length()
+        { i < len } whileTrue {
+            ch = str at(i)
+            (self _isUnreserved(ch)) ifTrue {
+                result = result + ch
+            } ifFalse {
+                code = self _ord(ch)
+                hi = code / 16
+                lo = code % 16
+                result = result + "%" + hex at(hi) + hex at(lo)
+            }
+            i = i + 1
+        }
+        result
+    }
+
+    // Decode percent-encoded string
+    decodeComponent(str) {
+        result = ""
+        i = 0
+        len = str length()
+        { i < len } whileTrue {
+            ch = str at(i)
+            (ch == "%" && i + 2 < len) ifTrue {
+                hi = self _hexVal(str at(i + 1))
+                lo = self _hexVal(str at(i + 2))
+                result = result + "" chr(hi * 16 + lo)
+                i = i + 3
+            } ifFalse {
+                (ch == "+") ifTrue {
+                    result = result + " "
+                } ifFalse {
+                    result = result + ch
+                }
+                i = i + 1
+            }
+        }
+        result
+    }
+
+    _hexVal(ch) {
+        hex = "0123456789ABCDEFabcdef"
+        idx = hex indexOf(ch)
+        (idx == -1) ifTrue { idx = 0 }
+        (idx >= 16) ifTrue { idx - 6 } ifFalse { idx }
+    }
+
+    // Parse a URL string into a Dict
+    parse(url) {
+        result = Dict new()
+        rest = url
+
+        // Protocol
+        protoIdx = rest indexOf("://")
+        (protoIdx != -1 && protoIdx > 0) ifTrue {
+            result set("protocol", rest slice(0, protoIdx))
+            rest = rest slice(protoIdx + 3, rest length())
+        } ifFalse {
+            result set("protocol", "")
+        }
+
+        // Fragment
+        fragIdx = rest indexOf("#")
+        (fragIdx != -1) ifTrue {
+            result set("fragment", rest slice(fragIdx + 1, rest length()))
+            rest = rest slice(0, fragIdx)
+        } ifFalse {
+            result set("fragment", "")
+        }
+
+        // Query
+        qIdx = rest indexOf("?")
+        (qIdx != -1) ifTrue {
+            result set("query", rest slice(qIdx + 1, rest length()))
+            rest = rest slice(0, qIdx)
+        } ifFalse {
+            result set("query", "")
+        }
+
+        // Path
+        pathIdx = rest indexOf("/")
+        (pathIdx != -1) ifTrue {
+            result set("path", rest slice(pathIdx, rest length()))
+            rest = rest slice(0, pathIdx)
+        } ifFalse {
+            result set("path", "")
+        }
+
+        // Host and port
+        portIdx = rest indexOf(":")
+        (portIdx != -1) ifTrue {
+            result set("host", rest slice(0, portIdx))
+            result set("port", rest slice(portIdx + 1, rest length()))
+        } ifFalse {
+            result set("host", rest)
+            result set("port", "")
+        }
+
+        result
+    }
+
+    // Build URL string from parts Dict
+    build(parts) {
+        result = ""
+        proto = parts get("protocol")
+        (proto != nil && proto != "") ifTrue {
+            result = result + proto + "://"
+        }
+        result = result + parts get("host")
+        port = parts get("port")
+        (port != nil && port != "") ifTrue {
+            result = result + ":" + port
+        }
+        result = result + parts get("path")
+        query = parts get("query")
+        (query != nil && query != "") ifTrue {
+            result = result + "?" + query
+        }
+        frag = parts get("fragment")
+        (frag != nil && frag != "") ifTrue {
+            result = result + "#" + frag
+        }
+        result
+    }
+
+    // Parse query string "a=1&b=2" into Dict
+    parseQuery(qs) {
+        result = Dict new()
+        pairs = qs split("&")
+        pairs each { |pair|
+            eqIdx = pair indexOf("=")
+            (eqIdx != -1) ifTrue {
+                key = self decodeComponent(pair slice(0, eqIdx))
+                val = self decodeComponent(pair slice(eqIdx + 1, pair length()))
+                result set(key, val)
+            } ifFalse {
+                (pair length() > 0) ifTrue {
+                    result set(self decodeComponent(pair), "")
+                }
+            }
+        }
+        result
+    }
+}

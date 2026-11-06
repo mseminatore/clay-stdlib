@@ -1,20 +1,36 @@
-// clay-stdlib -- Clay Standard Library
-// Re-exports common bricks + adds utility objects
+// stdlib -- the Clay standard library
+//
+// import("stdlib") loads every sub-brick; import("stdlib/<name>") loads one.
+// Each defines its own globals (Json, Markdown, ArgParser, ...), and no two
+// sub-bricks define the same name.
 
-// Re-export core bricks (monorepo sub-bricks)
-import("clay-stdlib/clay-collections")
-import("clay-stdlib/clay-functional")
-import("clay-stdlib/clay-format")
-import("clay-stdlib/clay-match")
-import("clay-stdlib/clay-iter")
-import("clay-stdlib/clay-test")
-import("clay-stdlib/clay-json")
-import("clay-stdlib/clay-csv")
-import("clay-stdlib/clay-log")
-import("clay-stdlib/clay-event")
-import("clay-stdlib/clay-path")
-import("clay-stdlib/clay-args")
-import("clay-stdlib/clay-template")
+import("stdlib/args")
+import("stdlib/base64")
+import("stdlib/cache")
+import("stdlib/cli")
+import("stdlib/collections")
+import("stdlib/config")
+import("stdlib/csv")
+import("stdlib/enum")
+import("stdlib/env")
+import("stdlib/event")
+import("stdlib/format")
+import("stdlib/functional")
+import("stdlib/http-server")
+import("stdlib/iter")
+import("stdlib/json")
+import("stdlib/log")
+import("stdlib/markdown")
+import("stdlib/match")
+import("stdlib/orm")
+import("stdlib/path")
+import("stdlib/queue")
+import("stdlib/router")
+import("stdlib/template")
+import("stdlib/test")
+import("stdlib/url")
+import("stdlib/uuid")
+import("stdlib/validate")
 
 // === Assert -- simple assertion helper ===
 Assert = Object clone {

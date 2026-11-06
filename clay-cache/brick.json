@@ -1,7 +1,0 @@
-{
-  "name": "clay-cache",
-  "version": "0.1.0",
-  "description": "In-memory LRU/TTL key-value cache",
-  "main": "src/main.clay",
-  "deps": {}
-}

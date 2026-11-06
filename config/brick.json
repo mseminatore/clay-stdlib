@@ -1,0 +1,7 @@
+{
+  "name": "stdlib/config",
+  "version": "0.1.0",
+  "description": "INI-style configuration file parser",
+  "main": "src/main.clay",
+  "deps": {}
+}

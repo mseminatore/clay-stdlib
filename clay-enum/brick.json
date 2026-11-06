@@ -1,7 +1,0 @@
-{
-    "name": "clay-enum",
-    "version": "0.1.0",
-    "description": "Enum type for Clay - named constants with integer values",
-    "main": "src/main.clay",
-    "deps": {}
-}

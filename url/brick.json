@@ -1,0 +1,7 @@
+{
+  "name": "stdlib/url",
+  "version": "0.1.0",
+  "description": "URL parsing, building, and encoding",
+  "main": "src/main.clay",
+  "deps": {}
+}

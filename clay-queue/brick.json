@@ -1,7 +1,0 @@
-{
-  "name": "clay-queue",
-  "version": "0.1.0",
-  "description": "SQLite-backed persistent job queue",
-  "main": "src/main.clay",
-  "deps": {}
-}

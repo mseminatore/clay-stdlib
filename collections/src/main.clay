@@ -1,0 +1,177 @@
+// stdlib/collections -- Data structures for Clay: Set, Stack, Queue
+//
+// Usage:
+//   import("stdlib/collections")
+//
+//   s = Set new()
+//   s add(1)
+//   s add(2)
+//   s contains(1)   // true
+//
+//   stack = Stack new()
+//   stack push(42)
+//   stack pop        // 42
+//
+//   q = Queue new()
+//   q enqueue("a")
+//   q dequeue        // "a"
+//
+// For numeric ranges use the built-in Range: (1..5) each { |i| i println }
+
+// --- Set: unique elements backed by Dict ---
+Set = Object clone {
+    _data = nil
+
+    new() {
+        s = self clone
+        s _data = Dict clone
+        s
+    }
+
+    from(arr) {
+        s = self new()
+        arr each { |v| s add(v) }
+        s
+    }
+
+    add(val) {
+        _data set(val toString(), val)
+        self
+    }
+
+    remove(val) {
+        _data remove(val toString())
+        self
+    }
+
+    contains(val) {
+        _data has(val toString())
+    }
+
+    size() {
+        _data size
+    }
+
+    toArray() {
+        _data values
+    }
+
+    each(block) {
+        self toArray() each(block)
+        self
+    }
+
+    union(other) {
+        result = self new()
+        self toArray() each { |v| result add(v) }
+        other toArray() each { |v| result add(v) }
+        result
+    }
+
+    intersection(other) {
+        result = self new()
+        self toArray() filter { |v| other contains(v) } each { |v| result add(v) }
+        result
+    }
+
+    difference(other) {
+        result = self new()
+        self toArray() filter { |v| other contains(v) not } each { |v| result add(v) }
+        result
+    }
+
+    toString() {
+        items = self toArray()
+        "Set{" + items join(", ") + "}"
+    }
+}
+
+// --- Stack: LIFO backed by Array ---
+Stack = Object clone {
+    _items = nil
+
+    new() {
+        s = self clone
+        s _items = []
+        s
+    }
+
+    push(val) {
+        _items append(val)
+        self
+    }
+
+    pop() {
+        sz = _items size
+        (sz == 0) ifTrue { raise("Stack is empty") }
+        val = _items at(sz - 1)
+        _items removeAt(sz - 1)
+        val
+    }
+
+    peek() {
+        sz = _items size
+        (sz == 0) ifTrue { raise("Stack is empty") }
+        _items at(sz - 1)
+    }
+
+    isEmpty() {
+        _items size == 0
+    }
+
+    size() {
+        _items size
+    }
+
+    toArray() {
+        _items
+    }
+
+    toString() {
+        "Stack" + _items toString()
+    }
+}
+
+// --- Queue: FIFO backed by Array ---
+Queue = Object clone {
+    _items = nil
+
+    new() {
+        q = self clone
+        q _items = []
+        q
+    }
+
+    enqueue(val) {
+        _items append(val)
+        self
+    }
+
+    dequeue() {
+        (_items size == 0) ifTrue { raise("Queue is empty") }
+        val = _items at(0)
+        _items removeAt(0)
+        val
+    }
+
+    peek() {
+        (_items size == 0) ifTrue { raise("Queue is empty") }
+        _items at(0)
+    }
+
+    isEmpty() {
+        _items size == 0
+    }
+
+    size() {
+        _items size
+    }
+
+    toArray() {
+        _items
+    }
+
+    toString() {
+        "Queue" + _items toString()
+    }
+}

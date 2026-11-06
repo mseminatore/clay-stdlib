@@ -1,0 +1,7 @@
+{
+  "name": "stdlib/uuid",
+  "version": "0.1.0",
+  "description": "UUID v4 generation",
+  "main": "src/main.clay",
+  "deps": {}
+}
