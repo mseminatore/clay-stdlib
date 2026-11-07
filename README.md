@@ -1,5 +1,8 @@
 # stdlib
 
+> **Note:** [Clay](https://github.com/mseminatore/clay) itself is not public yet, so links to the
+> Clay repository won't work until it is released.
+
 The Clay standard library — a collection of bricks providing common functionality for Clay programs.
 
 ## Installation
