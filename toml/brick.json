@@ -1,0 +1,7 @@
+{
+  "name": "stdlib/toml",
+  "version": "0.1.0",
+  "description": "TOML 1.0 parser and writer",
+  "main": "src/main.clay",
+  "deps": {}
+}

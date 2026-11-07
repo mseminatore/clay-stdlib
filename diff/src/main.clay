@@ -1,0 +1,156 @@
+// stdlib/diff -- line diffs (Myers' algorithm) and unified diff output
+//
+// Usage:
+//   import("stdlib/diff")
+//
+//   ops = Diff lines("a\nb\nc\n", "a\nc\nd\n")
+//   // [["=", "a"], ["-", "b"], ["=", "c"], ["+", "d"]]
+//   Diff unified(old, new, "old.txt", "new.txt")   // like diff -u; "" if equal
+//   Diff stats(old, new)                           // #{"added": 1, "removed": 1}
+//
+// Inputs are strings (split into lines; a final newline doesn't add an empty
+// line) or arrays of lines. Diffs are minimal: no shorter edit exists.
+
+Diff = Object clone {
+
+    _lines(x) {
+        ((x type) == "Array") ifTrue { return x }
+        (x == "") ifTrue { return [] }
+        ls = x split("\n")
+        ((x endsWith("\n")) && ls size > 0) ifTrue { ls pop }
+        ls
+    }
+
+    // [op, line] pairs: "=" kept, "-" only in a, "+" only in b
+    lines(a, b) {
+        self _diff(self _lines(a), self _lines(b))
+    }
+
+    _diff(a, b) {
+        n = a size
+        m = b size
+        max = n + m
+        off = max + 1
+        v = []
+        i = 0
+        { i < 2 * max + 3 } whileTrue { v push(0); i = i + 1 }
+        trace = []
+        found = false
+        d = 0
+        { found == false && d <= max } whileTrue {
+            trace push(v slice(0, v size))
+            k = 0 - d
+            { found == false && k <= d } whileTrue {
+                down = (k == 0 - d) || ((k != d) && ((v at(off + k - 1)) < (v at(off + k + 1))))
+                x = down ifTrue { v at(off + k + 1) } ifFalse { (v at(off + k - 1)) + 1 }
+                y = x - k
+                { x < n && y < m && (a at(x)) == (b at(y)) } whileTrue {
+                    x = x + 1
+                    y = y + 1
+                }
+                v setAt(off + k, x)
+                (x >= n && y >= m) ifTrue { found = true }
+                k = k + 2
+            }
+            found ifFalse { d = d + 1 }
+        }
+        // walk back through the saved V arrays to recover the edit script
+        ops = []
+        x = n
+        y = m
+        { d >= 0 } whileTrue {
+            vd = trace at(d)
+            k = x - y
+            down = (k == 0 - d) || ((k != d) && ((vd at(off + k - 1)) < (vd at(off + k + 1))))
+            pk = down ifTrue { k + 1 } ifFalse { k - 1 }
+            px = (d == 0) ifTrue { 0 } ifFalse { vd at(off + pk) }
+            py = px - pk
+            { x > px && y > py } whileTrue {
+                x = x - 1
+                y = y - 1
+                ops push(["=", a at(x)])
+            }
+            (d > 0) ifTrue {
+                down ifTrue { y = y - 1; ops push(["+", b at(y)]) } ifFalse { x = x - 1; ops push(["-", a at(x)]) }
+            }
+            d = d - 1
+        }
+        out = []
+        j = ops size - 1
+        { j >= 0 } whileTrue { out push(ops at(j)); j = j - 1 }
+        out
+    }
+
+    // counts of added and removed lines
+    stats(a, b) {
+        added = 0
+        removed = 0
+        (self lines(a, b)) each { |op|
+            ((op at(0)) == "+") ifTrue { added = added + 1 }
+            ((op at(0)) == "-") ifTrue { removed = removed + 1 }
+        }
+        #{"added": added, "removed": removed}
+    }
+
+    // "start,count" for a hunk header (diff -u style)
+    _range(start, count) {
+        (count == 1) ifTrue { return (start + 1) toString }
+        first = (count == 0) ifTrue { start } ifFalse { start + 1 }
+        first toString + "," + count toString
+    }
+
+    // A unified diff (diff -u / git diff style) with `context` lines around
+    // each change; "" when the inputs are the same
+    unified(a, b, fromName = "a", toName = "b", context = 3) {
+        ops = self lines(a, b)
+        changes = []
+        i = 0
+        ops each { |op| ((op at(0)) != "=") ifTrue { changes push(i) }; i = i + 1 }
+        (changes size == 0) ifTrue { return "" }
+
+        // group changes whose context overlaps into hunks of op indexes
+        hunks = []
+        lo = (changes at(0)) - context
+        hi = (changes at(0)) + context
+        changes each { |c|
+            (c - context > hi + 1) ifTrue {
+                hunks push([lo, hi])
+                lo = c - context
+            }
+            hi = c + context
+        }
+        hunks push([lo, hi])
+
+        // line numbers before each op
+        aLine = []
+        bLine = []
+        na = 0
+        nb = 0
+        ops each { |op|
+            aLine push(na)
+            bLine push(nb)
+            ((op at(0)) != "+") ifTrue { na = na + 1 }
+            ((op at(0)) != "-") ifTrue { nb = nb + 1 }
+        }
+
+        out = "--- " + fromName + "\n+++ " + toName + "\n"
+        hunks each { |h|
+            s = ((h at(0)) < 0) ifTrue { 0 } ifFalse { h at(0) }
+            e = ((h at(1)) >= ops size) ifTrue { ops size - 1 } ifFalse { h at(1) }
+            ca = 0
+            cb = 0
+            body = ""
+            j = s
+            { j <= e } whileTrue {
+                op = ops at(j)
+                kind = op at(0)
+                (kind != "+") ifTrue { ca = ca + 1 }
+                (kind != "-") ifTrue { cb = cb + 1 }
+                body = body + ((kind == "=") ifTrue { " " } ifFalse { kind }) + (op at(1)) + "\n"
+                j = j + 1
+            }
+            out = out + "@@ -" + (self _range(aLine at(s), ca)) + " +" + (self _range(bLine at(s), cb)) + " @@\n" + body
+        }
+        out
+    }
+}

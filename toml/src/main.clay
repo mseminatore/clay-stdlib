@@ -1,0 +1,528 @@
+// stdlib/toml -- TOML 1.0 parser and writer
+//
+// Usage:
+//   import("stdlib/toml")
+//
+//   cfg = Toml parseFile("app.toml")      // nested Dicts and Arrays
+//   cfg get("server") get("port")         // 8080
+//   Toml parse("name = \"clay\"\n[deps]\njson = \"1.0\"\n")
+//   Toml stringify(cfg)                   // back to TOML text
+//
+// Tables become Dicts, arrays (and arrays of tables) Arrays. Strings, integers,
+// floats and booleans map to Clay values; dates and times are kept as their
+// TOML text ("1979-05-27T07:32:00Z"). Errors raise "Toml: line N: ...".
+
+Toml = Object clone {
+    parse(text) {
+        p = _TomlParser clone
+        p _start(text)
+        p _document
+    }
+
+    parseFile(path) {
+        self parse(File read(path))
+    }
+
+    // --- writing ---
+
+    // TOML text for a Dict: plain keys first, then [tables] and [[arrays of
+    // tables]], keys in sorted order
+    stringify(dict) {
+        out = []
+        self _writeTable(dict, "", out)
+        text = out join("\n")
+        (text length > 0) ifTrue { text = text + "\n" }
+        text
+    }
+
+    _writeTable(dict, path, out) {
+        keys = (dict keys) sort
+        keys each { |k|
+            v = dict get(k)
+            ((self _isTable(v)) == false && (self _isTableArray(v)) == false) ifTrue {
+                out push(self _key(k) + " = " + (self _value(v)))
+            }
+        }
+        keys each { |k|
+            v = dict get(k)
+            sub = (path == "") ifTrue { self _key(k) } ifFalse { path + "." + (self _key(k)) }
+            (self _isTable(v)) ifTrue {
+                (out size > 0) ifTrue { out push("") }
+                out push("[" + sub + "]")
+                self _writeTable(v, sub, out)
+            }
+            (self _isTableArray(v)) ifTrue {
+                v each { |t|
+                    (out size > 0) ifTrue { out push("") }
+                    out push("[[" + sub + "]]")
+                    self _writeTable(t, sub, out)
+                }
+            }
+        }
+    }
+
+    _isTable(v) { (v type) == "Dict" }
+
+    _isTableArray(v) {
+        ((v type) == "Array" && v size > 0) ifFalse { return false }
+        (v filter { |x| (x type) != "Dict" }) size == 0
+    }
+
+    _key(k) {
+        ok = k length > 0
+        i = 0
+        { ok && i < k length } whileTrue {
+            c = k byteAt(i)
+            bare = (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c == 95 || c == 45
+            bare ifFalse { ok = false }
+            i = i + 1
+        }
+        ok ifTrue { k } ifFalse { self _string(k) }
+    }
+
+    _string(s) {
+        out = "\""
+        i = 0
+        { i < s length } whileTrue {
+            c = s at(i)
+            b = s byteAt(i)
+            (c == "\"") ifTrue { out = out + "\\\"" } ifFalse {
+            (c == "\\") ifTrue { out = out + "\\\\" } ifFalse {
+            (c == "\n") ifTrue { out = out + "\\n" } ifFalse {
+            (c == "\t") ifTrue { out = out + "\\t" } ifFalse {
+            (c == "\r") ifTrue { out = out + "\\r" } ifFalse {
+            (b < 32 || b == 127) ifTrue {
+                hex = "0123456789ABCDEF"
+                out = out + "\\u00" + (hex at(b / 16)) + (hex at(b % 16))
+            } ifFalse { out = out + c } } } } } }
+            i = i + 1
+        }
+        out + "\""
+    }
+
+    _value(v) {
+        t = v type
+        (t == "String") ifTrue { return self _string(v) }
+        (t == "Boolean") ifTrue { return v toString }
+        (t == "Number") ifTrue { return v toString }
+        (t == "Array") ifTrue {
+            return "[" + ((v map { |x| self _value(x) }) join(", ")) + "]"
+        }
+        (t == "Dict") ifTrue {
+            parts = ((v keys) sort) map { |k| self _key(k) + " = " + (self _value(v get(k))) }
+            return "{" + ((parts size > 0) ifTrue { " " + (parts join(", ")) + " " } ifFalse { "" }) + "}"
+        }
+        raise("Toml stringify: cannot write a " + t)
+    }
+}
+
+// The parser's state lives on a clone, so parses don't share it
+_TomlParser = Object clone {
+    _s = ""
+    _n = 0
+    _i = 0
+    _ln = 1
+    _root = nil
+    _cur = nil
+    _explicit = nil     // table paths defined by a [header] (no redefining)
+
+    _start(text) {
+        self _s = text
+        self _n = text length
+        self _i = 0
+        self _ln = 1
+        self _root = #{}
+        self _cur = self _root
+        self _explicit = #{}
+    }
+
+    _fail(msg) {
+        raise("Toml: line " + (self _ln) toString + ": " + msg)
+    }
+
+    _peek() {
+        (self _i < self _n) ifTrue { (self _s) at(self _i) } ifFalse { "" }
+    }
+
+    _peekAt(k) {
+        (self _i + k < self _n) ifTrue { (self _s) at(self _i + k) } ifFalse { "" }
+    }
+
+    _next() {
+        c = self _peek
+        (c == "\n") ifTrue { self _ln = self _ln + 1 }
+        self _i = self _i + 1
+        c
+    }
+
+    _lookingAt(str) {
+        ((self _s) slice(self _i, self _i + str length)) == str
+    }
+
+    _skipSpaces() {
+        { (self _peek) == " " || (self _peek) == "\t" } whileTrue { self _next }
+    }
+
+    // spaces, then an optional comment, then a newline or the end
+    _endOfLine() {
+        self _skipSpaces
+        ((self _peek) == "#") ifTrue {
+            { self _i < self _n && (self _peek) != "\n" } whileTrue { self _next }
+        }
+        ((self _peek) == "\r" && (self _peekAt(1)) == "\n") ifTrue { self _next }
+        ((self _peek) == "\n") ifTrue { self _next; return nil }
+        (self _i >= self _n) ifTrue { return nil }
+        self _fail("expected the end of the line, found '" + (self _peek) + "'")
+    }
+
+    // spaces, comments and newlines (inside arrays)
+    _skipBlank() {
+        going = true
+        { going } whileTrue {
+            c = self _peek
+            (c == " " || c == "\t" || c == "\n" || c == "\r") ifTrue { self _next } ifFalse {
+                (c == "#") ifTrue {
+                    { self _i < self _n && (self _peek) != "\n" } whileTrue { self _next }
+                } ifFalse { going = false }
+            }
+        }
+    }
+
+    _document() {
+        { self _i < self _n } whileTrue {
+            self _skipBlank
+            (self _i < self _n) ifTrue {
+                ((self _peek) == "[") ifTrue { self _header } ifFalse { self _keyValue(self _cur) }
+            }
+        }
+        self _root
+    }
+
+    // --- keys and tables ---
+
+    _isBareChar(c) {
+        (c == "") ifTrue { return false }
+        b = c byteAt(0)
+        (b >= 65 && b <= 90) || (b >= 97 && b <= 122) || (b >= 48 && b <= 57) || b == 95 || b == 45
+    }
+
+    _simpleKey() {
+        c = self _peek
+        (c == "\"") ifTrue { return self _basicString }
+        (c == "'") ifTrue { return self _literalString }
+        start = self _i
+        { self _isBareChar(self _peek) } whileTrue { self _next }
+        (self _i == start) ifTrue { self _fail("expected a key, found '" + c + "'") }
+        (self _s) slice(start, self _i)
+    }
+
+    // a.b."c d" -> ["a", "b", "c d"]
+    _dottedKey() {
+        parts = []
+        self _skipSpaces
+        parts push(self _simpleKey)
+        self _skipSpaces
+        { (self _peek) == "." } whileTrue {
+            self _next
+            self _skipSpaces
+            parts push(self _simpleKey)
+            self _skipSpaces
+        }
+        parts
+    }
+
+    // the table at parts (creating missing ones) below `table`
+    _descend(table, parts, count) {
+        t = table
+        i = 0
+        { i < count } whileTrue {
+            k = parts at(i)
+            (t has(k)) ifFalse { t set(k, #{}) }
+            v = t get(k)
+            ((v type) == "Array" && v size > 0 && ((v at(v size - 1)) type) == "Dict") ifTrue {
+                v = v at(v size - 1)    // into the latest [[table]]
+            }
+            ((v type) == "Dict") ifFalse { self _fail("'" + k + "' is not a table") }
+            t = v
+            i = i + 1
+        }
+        t
+    }
+
+    _header() {
+        self _next
+        arrayOf = (self _peek) == "["
+        arrayOf ifTrue { self _next }
+        parts = self _dottedKey
+        ((self _peek) == "]") ifFalse { self _fail("expected ']' to close the table header") }
+        self _next
+        arrayOf ifTrue {
+            ((self _peek) == "]") ifFalse { self _fail("expected ']]' to close the array of tables") }
+            self _next
+        }
+        // (the end of the line is checked last, so errors report this line)
+        parent = self _descend(self _root, parts, parts size - 1)
+        last = parts at(parts size - 1)
+        arrayOf ifTrue {
+            (parent has(last)) ifFalse { parent set(last, []) }
+            arr = parent get(last)
+            ((arr type) == "Array") ifFalse { self _fail("'" + last + "' is already defined and is not an array of tables") }
+            t = #{}
+            arr push(t)
+            self _cur = t
+            self _endOfLine
+            return nil
+        }
+        path = parts join(".")
+        (self _explicit has(path)) ifTrue { self _fail("table [" + path + "] is defined twice") }
+        self _explicit set(path, true)
+        (parent has(last)) ifFalse { parent set(last, #{}) }
+        t = parent get(last)
+        ((t type) == "Dict") ifFalse { self _fail("'" + last + "' is already defined and is not a table") }
+        self _cur = t
+        self _endOfLine
+    }
+
+    _keyValue(table) {
+        parts = self _dottedKey
+        ((self _peek) == "=") ifFalse { self _fail("expected '=' after the key") }
+        self _next
+        self _skipSpaces
+        v = self _value
+        target = self _descend(table, parts, parts size - 1)
+        last = parts at(parts size - 1)
+        (target has(last)) ifTrue { self _fail("key '" + (parts join(".")) + "' is defined twice") }
+        target set(last, v)
+        self _endOfLine
+    }
+
+    // --- values ---
+
+    _value() {
+        c = self _peek
+        (c == "\"") ifTrue {
+            (self _lookingAt("\"\"\"")) ifTrue { return self _multiBasic }
+            return self _basicString
+        }
+        (c == "'") ifTrue {
+            (self _lookingAt("'''")) ifTrue { return self _multiLiteral }
+            return self _literalString
+        }
+        (c == "[") ifTrue { return self _array }
+        (c == "{") ifTrue { return self _inlineTable }
+        (self _lookingAt("true")) ifTrue { self _i = self _i + 4; return true }
+        (self _lookingAt("false")) ifTrue { self _i = self _i + 5; return false }
+        self _scalar
+    }
+
+    _hexValue(h) {
+        n = 0
+        i = 0
+        { i < h length } whileTrue {
+            b = h byteAt(i)
+            d = (b >= 48 && b <= 57) ifTrue { b - 48 } ifFalse {
+                (b >= 97 && b <= 102) ifTrue { b - 87 } ifFalse {
+                    (b >= 65 && b <= 70) ifTrue { b - 55 } ifFalse { -1 } } }
+            (d < 0) ifTrue { self _fail("bad hex digit in '" + h + "'") }
+            n = n * 16 + d
+            i = i + 1
+        }
+        n
+    }
+
+    // UTF-8 bytes for a code point
+    _utf8(cp) {
+        (cp < 128) ifTrue { return String chr(cp) }
+        (cp < 2048) ifTrue {
+            return (String chr(192 + cp / 64)) + (String chr(128 + cp % 64))
+        }
+        (cp < 65536) ifTrue {
+            return (String chr(224 + cp / 4096)) + (String chr(128 + (cp / 64) % 64)) + (String chr(128 + cp % 64))
+        }
+        (String chr(240 + cp / 262144)) + (String chr(128 + (cp / 4096) % 64)) +
+            (String chr(128 + (cp / 64) % 64)) + (String chr(128 + cp % 64))
+    }
+
+    _escape() {
+        c = self _next
+        (c == "n") ifTrue { return "\n" }
+        (c == "t") ifTrue { return "\t" }
+        (c == "r") ifTrue { return "\r" }
+        (c == "\"") ifTrue { return "\"" }
+        (c == "\\") ifTrue { return "\\" }
+        (c == "b") ifTrue { return String chr(8) }
+        (c == "f") ifTrue { return String chr(12) }
+        (c == "e") ifTrue { return String chr(27) }
+        (c == "u" || c == "U") ifTrue {
+            len = (c == "u") ifTrue { 4 } ifFalse { 8 }
+            h = (self _s) slice(self _i, self _i + len)
+            (h length == len) ifFalse { self _fail("short \\" + c + " escape") }
+            self _i = self _i + len
+            return self _utf8(self _hexValue(h))
+        }
+        self _fail("unknown escape '\\" + c + "'")
+    }
+
+    _basicString() {
+        self _next
+        out = ""
+        { true } whileTrue {
+            c = self _peek
+            (c == "" || c == "\n") ifTrue { self _fail("unterminated string") }
+            self _next
+            (c == "\"") ifTrue { return out }
+            out = (c == "\\") ifTrue { out + (self _escape) } ifFalse { out + c }
+        }
+    }
+
+    _literalString() {
+        self _next
+        start = self _i
+        { (self _peek) != "'" } whileTrue {
+            c = self _peek
+            (c == "" || c == "\n") ifTrue { self _fail("unterminated string") }
+            self _next
+        }
+        s = (self _s) slice(start, self _i)
+        self _next
+        s
+    }
+
+    // a newline right after the opening quotes isn't part of the string
+    _skipFirstNewline() {
+        ((self _peek) == "\r" && (self _peekAt(1)) == "\n") ifTrue { self _next }
+        ((self _peek) == "\n") ifTrue { self _next }
+    }
+
+    _multiBasic() {
+        self _i = self _i + 3
+        self _skipFirstNewline
+        out = ""
+        { true } whileTrue {
+            (self _i >= self _n) ifTrue { self _fail("unterminated multi-line string") }
+            (self _lookingAt("\"\"\"")) ifTrue {
+                // up to two quotes may sit right before the closing three
+                extra = 0
+                { extra < 2 && (self _peekAt(3 + extra)) == "\"" } whileTrue { extra = extra + 1 }
+                out = out + ("\"" repeat(extra))
+                self _i = self _i + 3 + extra
+                return out
+            }
+            c = self _next
+            (c == "\\") ifTrue {
+                n = self _peek
+                (n == " " || n == "\t" || n == "\n" || n == "\r") ifTrue {
+                    // line-ending backslash: drop the newline and leading blanks
+                    { (self _peek) == " " || (self _peek) == "\t" || (self _peek) == "\n" || (self _peek) == "\r" } whileTrue { self _next }
+                } ifFalse { out = out + (self _escape) }
+            } ifFalse { out = out + c }
+        }
+    }
+
+    _multiLiteral() {
+        self _i = self _i + 3
+        self _skipFirstNewline
+        start = self _i
+        { (self _lookingAt("'''")) == false } whileTrue {
+            (self _i >= self _n) ifTrue { self _fail("unterminated multi-line string") }
+            self _next
+        }
+        extra = 0
+        { extra < 2 && (self _peekAt(3 + extra)) == "'" } whileTrue { extra = extra + 1 }
+        s = (self _s) slice(start, self _i + extra)
+        self _i = self _i + 3 + extra
+        s
+    }
+
+    _array() {
+        self _next
+        arr = []
+        { true } whileTrue {
+            self _skipBlank
+            ((self _peek) == "]") ifTrue { self _next; return arr }
+            arr push(self _value)
+            self _skipBlank
+            c = self _peek
+            (c == ",") ifTrue { self _next } ifFalse {
+                (c == "]") ifFalse { self _fail("expected ',' or ']' in an array") }
+            }
+        }
+    }
+
+    _inlineTable() {
+        self _next
+        t = #{}
+        self _skipSpaces
+        ((self _peek) == "}") ifTrue { self _next; return t }
+        { true } whileTrue {
+            parts = self _dottedKey
+            ((self _peek) == "=") ifFalse { self _fail("expected '=' in an inline table") }
+            self _next
+            self _skipSpaces
+            v = self _value
+            target = self _descend(t, parts, parts size - 1)
+            last = parts at(parts size - 1)
+            (target has(last)) ifTrue { self _fail("key '" + last + "' is defined twice") }
+            target set(last, v)
+            self _skipSpaces
+            c = self _next
+            (c == "}") ifTrue { return t }
+            (c == ",") ifFalse { self _fail("expected ',' or '}' in an inline table") }
+            self _skipSpaces
+        }
+    }
+
+    _isDigit(c) { (c != "") && ((c byteAt(0)) >= 48 && (c byteAt(0)) <= 57) }
+
+    // numbers, dates and times
+    _scalar() {
+        start = self _i
+        { self _i < self _n && ("0123456789abcdefinxoABCDEFXOT_+-.:Zz" contains(self _peek)) } whileTrue { self _next }
+        tok = (self _s) slice(start, self _i)
+        // "1979-05-27 07:32:00": a date, a space, then a time
+        ((tok length == 10) && (tok at(4)) == "-" && (self _peek) == " " &&
+         (self _isDigit(self _peekAt(1))) && (self _isDigit(self _peekAt(2))) && (self _peekAt(3)) == ":") ifTrue {
+            self _next
+            { self _i < self _n && ("0123456789_+-.:Zz" contains(self _peek)) } whileTrue { self _next }
+            tok = (self _s) slice(start, self _i)
+        }
+        (tok == "") ifTrue { self _fail("expected a value, found '" + (self _peek) + "'") }
+        body = ((tok at(0)) == "+" || (tok at(0)) == "-") ifTrue { tok slice(1, tok length) } ifFalse { tok }
+        (body == "inf" || body == "nan") ifTrue { self _fail("inf and nan are not supported") }
+        // dates and times stay text
+        ((tok length >= 8 && (tok at(2)) == ":") || (tok length >= 10 && (tok at(4)) == "-" && (tok at(7)) == "-")) ifTrue {
+            return tok
+        }
+        neg = (tok at(0)) == "-"
+        (body startsWith("0x") || body startsWith("0o") || body startsWith("0b")) ifTrue {
+            base = ((body at(1)) == "x") ifTrue { 16 } ifFalse { ((body at(1)) == "o") ifTrue { 8 } ifFalse { 2 } }
+            digits = (body slice(2, body length)) replace("_", "")
+            (digits == "") ifTrue { self _fail("bad number '" + tok + "'") }
+            n = 0
+            i = 0
+            { i < digits length } whileTrue {
+                d = self _hexValue(digits at(i))
+                (d >= base) ifTrue { self _fail("bad digit in '" + tok + "'") }
+                n = n * base + d
+                i = i + 1
+            }
+            return neg ifTrue { 0 - n } ifFalse { n }
+        }
+        plain = tok replace("_", "")
+        ((body contains("__")) || (body startsWith("_")) || (body endsWith("_"))) ifTrue { self _fail("bad number '" + tok + "'") }
+        isFloat = (body contains(".")) || (body contains("e")) || (body contains("E"))
+        isFloat ifTrue {
+            ((body startsWith(".")) || (body endsWith(".")) || (body contains(".e")) || (body contains(".E"))) ifTrue {
+                self _fail("bad float '" + tok + "'")
+            }
+            return plain toFloat
+        }
+        i = 0
+        { i < body length } whileTrue {
+            ((self _isDigit(body at(i))) || (body at(i)) == "_") ifFalse { self _fail("bad value '" + tok + "'") }
+            i = i + 1
+        }
+        ((body length > 1) && (body at(0)) == "0") ifTrue { self _fail("leading zeros in '" + tok + "'") }
+        plain toInt
+    }
+}

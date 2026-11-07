@@ -1,0 +1,7 @@
+{
+  "name": "stdlib/semver",
+  "version": "0.1.0",
+  "description": "Semantic Versioning 2.0.0: parse, compare, npm-style ranges",
+  "main": "src/main.clay",
+  "deps": {}
+}

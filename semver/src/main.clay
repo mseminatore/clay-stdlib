@@ -1,0 +1,354 @@
+// stdlib/semver -- Semantic Versioning 2.0.0: parse, compare, ranges
+//
+// Usage:
+//   import("stdlib/semver")
+//
+//   v = Semver parse("1.4.2-beta.1+build.5")
+//   v major  v minor  v patch  v prerelease  v build   // 1 4 2 "beta.1" "build.5"
+//   Semver compare("1.2.3", "1.10.0")       // -1
+//   Semver satisfies("1.4.2", "^1.2")       // true
+//   Semver maxSatisfying(["1.2.0", "1.9.1", "2.0.0"], "~1.9")   // "1.9.1"
+//   Semver inc("1.4.2", "minor")            // "1.5.0"
+//
+// Ranges follow npm: ^1.2.3, ~1.2, 1.x, *, >=1.0.0 <2.0.0 (space = and),
+// "1.2 || >=3", "1.0.0 - 2.1". A prerelease version only satisfies a range
+// that names a prerelease of the same major.minor.patch, so ^1.0.0 doesn't
+// match 2.0.0-beta.
+
+Semver = Object clone {
+
+    // --- parsing ---
+
+    _num(s, whole) {
+        (s == "" || s == nil) ifTrue { raise("Semver: invalid version '" + whole + "'") }
+        i = 0
+        { i < s length } whileTrue {
+            b = s byteAt(i)
+            (b < 48 || b > 57) ifTrue { raise("Semver: invalid version '" + whole + "'") }
+            i = i + 1
+        }
+        ((s length > 1) && (s at(0)) == "0") ifTrue { raise("Semver: leading zero in '" + whole + "'") }
+        s toInt
+    }
+
+    // A version object (major, minor, patch, prerelease, build, toString).
+    // A leading "v" or "=" and surrounding spaces are allowed.
+    parse(text) {
+        ((text type) != "String") ifTrue { return text }    // already parsed
+        s = text trim
+        ((s startsWith("v")) || (s startsWith("V")) || (s startsWith("="))) ifTrue { s = s slice(1, s length) }
+        build = ""
+        plus = s indexOf("+")
+        (plus >= 0) ifTrue {
+            build = s slice(plus + 1, s length)
+            s = s slice(0, plus)
+            (build == "") ifTrue { raise("Semver: invalid version '" + text + "'") }
+        }
+        pre = ""
+        dash = s indexOf("-")
+        (dash >= 0) ifTrue {
+            pre = s slice(dash + 1, s length)
+            s = s slice(0, dash)
+            (pre == "") ifTrue { raise("Semver: invalid version '" + text + "'") }
+        }
+        parts = s split(".")
+        ((parts size) == 3) ifFalse { raise("Semver: invalid version '" + text + "'") }
+        v = _SemverVersion clone
+        v major = self _num(parts at(0), text)
+        v minor = self _num(parts at(1), text)
+        v patch = self _num(parts at(2), text)
+        v prerelease = pre
+        v build = build
+        v
+    }
+
+    valid(text) {
+        (try { self parse(text) } catch { |e| nil }) != nil
+    }
+
+    _v(x) { ((x type) == "String") ifTrue { self parse(x) } ifFalse { x } }
+
+    // --- comparison ---
+
+    _cmpInt(a, b) { (a < b) ifTrue { -1 } ifFalse { (a > b) ifTrue { 1 } ifFalse { 0 } } }
+
+    _isNumeric(s) {
+        (s length == 0) ifTrue { return false }
+        i = 0
+        { i < s length } whileTrue {
+            b = s byteAt(i)
+            (b < 48 || b > 57) ifTrue { return false }
+            i = i + 1
+        }
+        true
+    }
+
+    // ASCII order, as the spec asks for alphanumeric identifiers
+    _cmpStr(a, b) {
+        i = 0
+        { i < a length && i < b length } whileTrue {
+            c = self _cmpInt(a byteAt(i), b byteAt(i))
+            (c != 0) ifTrue { return c }
+            i = i + 1
+        }
+        self _cmpInt(a length, b length)
+    }
+
+    _cmpPre(a, b) {
+        (a == b) ifTrue { return 0 }
+        (a == "") ifTrue { return 1 }       // 1.0.0 > 1.0.0-alpha
+        (b == "") ifTrue { return -1 }
+        pa = a split(".")
+        pb = b split(".")
+        i = 0
+        { i < pa size && i < pb size } whileTrue {
+            x = pa at(i)
+            y = pb at(i)
+            nx = self _isNumeric(x)
+            ny = self _isNumeric(y)
+            c = 0
+            (nx && ny) ifTrue { c = self _cmpInt(x toInt, y toInt) } ifFalse {
+                nx ifTrue { c = -1 } ifFalse {
+                    ny ifTrue { c = 1 } ifFalse {
+                        c = self _cmpStr(x, y)
+                    }
+                }
+            }
+            (c != 0) ifTrue { return c }
+            i = i + 1
+        }
+        self _cmpInt(pa size, pb size)
+    }
+
+    // -1, 0 or 1 by precedence (build metadata is ignored)
+    compare(a, b) {
+        va = self _v(a)
+        vb = self _v(b)
+        c = self _cmpInt(va major, vb major)
+        (c == 0) ifTrue { c = self _cmpInt(va minor, vb minor) }
+        (c == 0) ifTrue { c = self _cmpInt(va patch, vb patch) }
+        (c == 0) ifTrue { c = self _cmpPre(va prerelease, vb prerelease) }
+        c
+    }
+
+    lt(a, b) { (self compare(a, b)) < 0 }
+    gt(a, b) { (self compare(a, b)) > 0 }
+    eq(a, b) { (self compare(a, b)) == 0 }
+
+    // ascending; the input isn't changed
+    sort(versions) {
+        out = []
+        versions each { |v| out push(v) }
+        // insertion sort: version lists are short
+        i = 1
+        { i < out size } whileTrue {
+            j = i
+            { j > 0 && (self compare(out at(j - 1), out at(j))) > 0 } whileTrue {
+                tmp = out at(j)
+                out setAt(j, out at(j - 1))
+                out setAt(j - 1, tmp)
+                j = j - 1
+            }
+            i = i + 1
+        }
+        out
+    }
+
+    max(versions) {
+        best = nil
+        versions each { |v| ((best == nil) || (self compare(v, best)) > 0) ifTrue { best = v } }
+        best
+    }
+
+    // the next version: "major", "minor", "patch" (a prerelease of x.y.z bumps
+    // to x.y.z for "patch"), keeping nothing else
+    inc(version, part) {
+        v = self _v(version)
+        (part == "major") ifTrue { return ((v major) + 1) toString + ".0.0" }
+        (part == "minor") ifTrue { return (v major) toString + "." + ((v minor) + 1) toString + ".0" }
+        (part == "patch") ifTrue {
+            p = ((v prerelease) == "") ifTrue { (v patch) + 1 } ifFalse { v patch }
+            return (v major) toString + "." + (v minor) toString + "." + p toString
+        }
+        raise("Semver inc: part must be \"major\", \"minor\" or \"patch\"")
+    }
+
+    // --- ranges ---
+
+    // a partial version "1", "1.2", "1.2.3", "1.x", "*" -> [major, minor,
+    // patch, prerelease] with nil for wildcards / missing parts
+    _partial(text, whole) {
+        s = text
+        ((s startsWith("v")) || (s startsWith("V"))) ifTrue { s = s slice(1, s length) }
+        plus = s indexOf("+")
+        (plus >= 0) ifTrue { s = s slice(0, plus) }
+        pre = ""
+        dash = s indexOf("-")
+        (dash >= 0) ifTrue {
+            pre = s slice(dash + 1, s length)
+            s = s slice(0, dash)
+        }
+        out = [nil, nil, nil, pre]
+        (s == "" || s == "*" || s == "x" || s == "X") ifTrue { return out }
+        parts = s split(".")
+        (parts size > 3) ifTrue { raise("Semver: invalid range '" + whole + "'") }
+        i = 0
+        stop = false
+        parts each { |p|
+            wild = p == "*" || p == "x" || p == "X"
+            (wild || stop) ifTrue { stop = true } ifFalse {
+                out setAt(i, self _num(p, whole))
+            }
+            i = i + 1
+        }
+        out
+    }
+
+    _ver(maj, min, pat, pre) {
+        v = _SemverVersion clone
+        v major = maj
+        v minor = min
+        v patch = pat
+        v prerelease = pre
+        v build = ""
+        v
+    }
+
+    // one comparator -> list of [op, version] (op is < <= > >= =)
+    _comparators(tok, whole) {
+        op = ""
+        ops = ["<=", ">=", "<", ">", "=", "^", "~"]
+        ops each { |o| ((op == "") && (tok startsWith(o))) ifTrue { op = o } }
+        (op == "~" && tok startsWith("~>")) ifTrue { tok = "~" + (tok slice(2, tok length)) }
+        rest = (tok slice(op length, tok length)) trim
+        p = self _partial(rest, whole)
+        maj = p at(0)
+        min = p at(1)
+        pat = p at(2)
+        pre = p at(3)
+        (maj == nil) ifTrue {
+            ((op == "<") || (op == ">")) ifTrue { return [["<", self _ver(0, 0, 0, "0")]] }
+            return []                                           // anything
+        }
+        (op == "^") ifTrue {
+            lo = self _ver(maj, min ?? 0, pat ?? 0, pre)
+            hi = nil
+            (maj > 0) ifTrue { hi = self _ver(maj + 1, 0, 0, "") } ifFalse {
+                (min == nil) ifTrue { hi = self _ver(1, 0, 0, "") } ifFalse {
+                    ((min > 0) || (pat == nil)) ifTrue { hi = self _ver(0, min + 1, 0, "") } ifFalse {
+                        hi = self _ver(0, 0, pat + 1, "")
+                    }
+                }
+            }
+            return [[">=", lo], ["<", hi]]
+        }
+        // a full x.y.z with = or no operator is exact; ~ and partials are ranges
+        exact = (pat != nil) && (op == "" || op == "=")
+        exact ifTrue { return [["=", self _ver(maj, min, pat, pre)]] }
+        (op == "~" || op == "" || op == "=") ifTrue {
+            lo = self _ver(maj, min ?? 0, pat ?? 0, pre)
+            hi = (min == nil) ifTrue { self _ver(maj + 1, 0, 0, "") } ifFalse { self _ver(maj, min + 1, 0, "") }
+            return [[">=", lo], ["<", hi]]
+        }
+        // < <= > >= with a partial: fill with zeros, or bump past it
+        full = self _ver(maj, min ?? 0, pat ?? 0, pre)
+        (pat != nil) ifTrue { return [[op, full]] }
+        next = (min == nil) ifTrue { self _ver(maj + 1, 0, 0, "") } ifFalse { self _ver(maj, min + 1, 0, "") }
+        (op == ">=") ifTrue { return [[">=", full]] }
+        (op == "<") ifTrue { return [["<", full]] }
+        (op == ">") ifTrue { return [[">=", next]] }
+        [["<", next]]                                           // <=
+    }
+
+    // "1.2.3 - 2.3" -> [>=1.2.3, <=2.3.0 or <2.4.0]
+    _hyphen(a, b, whole) {
+        lo = self _comparators(">=" + a, whole)
+        hi = self _comparators("<=" + b, whole)        // a partial bumps: - 2.3 is <2.4.0
+        out = []
+        lo each { |c| out push(c) }
+        hi each { |c| out push(c) }
+        out
+    }
+
+    // the range as a list of alternatives, each a list of [op, version]
+    _parseRange(range) {
+        sets = []
+        (range split("||")) each { |alt|
+            s = alt trim
+            set = []
+            (s contains(" - ")) ifTrue {
+                i = s indexOf(" - ")
+                set = self _hyphen((s slice(0, i)) trim, (s slice(i + 3, s length)) trim, range)
+            } ifFalse {
+                // "> = 1.2" / ">= 1.2": join an operator to its version
+                toks = []
+                pending = ""
+                (s split(" ")) each { |t|
+                    (t != "") ifTrue {
+                        ((t == "<") || (t == "<=") || (t == ">") || (t == ">=") || (t == "=") || (t == "^") || (t == "~")) ifTrue {
+                            pending = pending + t
+                        } ifFalse {
+                            toks push(pending + t)
+                            pending = ""
+                        }
+                    }
+                }
+                toks each { |t| (self _comparators(t, range)) each { |c| set push(c) } }
+            }
+            sets push(set)
+        }
+        sets
+    }
+
+    _test(op, v, target) {
+        c = self compare(v, target)
+        (op == "=") ifTrue { return c == 0 }
+        (op == "<") ifTrue { return c < 0 }
+        (op == "<=") ifTrue { return c <= 0 }
+        (op == ">") ifTrue { return c > 0 }
+        c >= 0
+    }
+
+    _satisfiesSet(v, set) {
+        ok = true
+        set each { |c| (self _test(c at(0), v, c at(1))) ifFalse { ok = false } }
+        ok ifFalse { return false }
+        ((v prerelease) == "") ifTrue { return true }
+        // a prerelease must be named by a comparator with the same x.y.z
+        allowed = false
+        set each { |c|
+            t = c at(1)
+            ((t prerelease) != "" && (t prerelease) != "0" && (t major) == (v major) &&
+             (t minor) == (v minor) && (t patch) == (v patch)) ifTrue { allowed = true }
+        }
+        allowed
+    }
+
+    satisfies(version, range) {
+        v = self _v(version)
+        hit = false
+        (self _parseRange(range)) each { |set| (self _satisfiesSet(v, set)) ifTrue { hit = true } }
+        hit
+    }
+
+    // the highest of versions in the range, or nil
+    maxSatisfying(versions, range) {
+        self max(versions filter { |v| self satisfies(v, range) })
+    }
+}
+
+_SemverVersion = Object clone {
+    major = 0
+    minor = 0
+    patch = 0
+    prerelease = ""
+    build = ""
+
+    // (self ... so a script's own `major` etc. can't shadow the slots)
+    toString() {
+        s = (self major) toString + "." + (self minor) toString + "." + (self patch) toString
+        ((self prerelease) != "") ifTrue { s = s + "-" + (self prerelease) }
+        ((self build) != "") ifTrue { s = s + "+" + (self build) }
+        s
+    }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "stdlib/diff",
+  "version": "0.1.0",
+  "description": "Line diffs (Myers) and unified diff output",
+  "main": "src/main.clay",
+  "deps": {}
+}

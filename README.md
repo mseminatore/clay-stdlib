@@ -40,6 +40,7 @@ import("stdlib/collections")
 | [collections](collections/) | Data structures: Set, Stack, Queue |
 | [config](config/) | INI-style configuration file parser |
 | [csv](csv/) | CSV parsing and generation |
+| [diff](diff/) | Line diffs (Myers) and unified diff output |
 | [enum](enum/) | Enum type with named constants |
 | [env](env/) | Environment variable management with .env file support |
 | [event](event/) | Event emitter (pub/sub) pattern |
@@ -53,8 +54,10 @@ import("stdlib/collections")
 | [match](match/) | Pattern matching with a chainable API |
 | [path](path/) | Path manipulation utilities |
 | [queue](queue/) | SQLite-backed persistent job queue |
+| [semver](semver/) | Semantic versions: parse, compare, npm-style ranges |
 | [template](template/) | String template engine using `{{placeholder}}` syntax |
 | [test](test/) | Simple, colorful testing framework |
+| [toml](toml/) | TOML 1.0 parser and writer |
 | [url](url/) | URL parsing, building, and percent encoding |
 | [uuid](uuid/) | UUID v4 generation |
 | [validate](validate/) | Schema validation for Dicts |
