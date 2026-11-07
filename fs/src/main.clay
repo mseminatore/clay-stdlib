@@ -1,0 +1,239 @@
+// stdlib/fs -- File system helpers: walk, glob, recursive copy/delete, temp dirs
+//
+// Usage:
+//   import("stdlib/fs")
+//
+//   Fs walk("src")                     // every file under src, sorted
+//   Fs walk("src") { |path| path println }
+//   Fs glob("src/**/*.clay")           // * ? [abc] within a name, ** across dirs
+//   Fs mkdirs("build/out/logs")        // with any missing parents
+//   Fs copyTree("assets", "dist/assets")
+//   Fs move("old", "new")              // across file systems too
+//   Fs removeTree("build")             // no error if it's not there
+//   Fs withTempDir { |dir| ... }       // removed afterwards, even on error
+//
+// Built on the core File object (read, write, copy, listDir, mkdir, delete,
+// tempDir, ...). Paths use "/" separators, which Windows accepts too.
+
+Fs = Object clone {
+
+    // "a" + "b" -> "a/b" (no doubled separator)
+    _join(dir, name) {
+        (dir == "" || dir == ".") ifTrue { return name }
+        last = dir at(dir length - 1)
+        (last == "/" || last == "\\") ifTrue { return dir + name }
+        dir + "/" + name
+    }
+
+    // --- walk ---
+
+    // Every file below dir (recursively), as paths starting with dir, in
+    // sorted order. With a block, calls it with each path instead and
+    // returns nil. Directories themselves aren't included.
+    walk(dir, block = nil) {
+        (File isDir(dir)) ifFalse { raise("Fs walk: not a directory: " + dir) }
+        found = []
+        self _walk(dir, found)
+        (block == nil) ifTrue { return found }
+        found each { |p| block value(p) }
+        nil
+    }
+
+    _walk(dir, found) {
+        (File listDir(dir)) each { |name|
+            p = self _join(dir, name)
+            (File isDir(p)) ifTrue { self _walk(p, found) } ifFalse { found push(p) }
+        }
+    }
+
+    // --- glob ---
+
+    // Does a single name match a glob pattern? * any run of characters,
+    // ? one character, [abc] / [a-z] / [!abc] a character class.
+    match(pattern, name) {
+        self _match(pattern, 0, name, 0)
+    }
+
+    _match(pat, pi, s, si) {
+        { pi < pat length } whileTrue {
+            c = pat at(pi)
+            (c == "*") ifTrue {
+                // collapse runs of *, then try every split point
+                { pi < pat length && (pat at(pi)) == "*" } whileTrue { pi = pi + 1 }
+                (pi == pat length) ifTrue { return true }
+                k = si
+                { k <= s length } whileTrue {
+                    (self _match(pat, pi, s, k)) ifTrue { return true }
+                    k = k + 1
+                }
+                return false
+            }
+            (si >= s length) ifTrue { return false }
+            (c == "?") ifTrue {
+                pi = pi + 1
+                si = si + 1
+                continue
+            }
+            (c == "[") ifTrue {
+                close = self _classEnd(pat, pi)
+                (close > 0) ifTrue {
+                    (self _inClass(pat slice(pi + 1, close), s at(si))) ifFalse { return false }
+                    pi = close + 1
+                    si = si + 1
+                    continue
+                }
+            }
+            (c == (s at(si))) ifFalse { return false }
+            pi = pi + 1
+            si = si + 1
+        }
+        si == s length
+    }
+
+    // index of the "]" closing a class opened at i, or -1 (then "[" is literal)
+    _classEnd(pat, i) {
+        j = i + 1
+        ((j < pat length) && ((pat at(j)) == "!" || (pat at(j)) == "^")) ifTrue { j = j + 1 }
+        ((j < pat length) && (pat at(j)) == "]") ifTrue { j = j + 1 }   // []] matches "]"
+        { j < pat length } whileTrue {
+            ((pat at(j)) == "]") ifTrue { return j }
+            j = j + 1
+        }
+        -1
+    }
+
+    _inClass(cls, ch) {
+        negate = (cls length > 0) && ((cls at(0)) == "!" || (cls at(0)) == "^")
+        i = negate ifTrue { 1 } ifFalse { 0 }
+        hit = false
+        { i < cls length } whileTrue {
+            lo = cls at(i)
+            ((i + 2 < cls length) && (cls at(i + 1)) == "-") ifTrue {
+                hi = cls at(i + 2)
+                ((ch byteAt(0)) >= (lo byteAt(0)) && (ch byteAt(0)) <= (hi byteAt(0))) ifTrue { hit = true }
+                i = i + 3
+            } ifFalse {
+                (lo == ch) ifTrue { hit = true }
+                i = i + 1
+            }
+        }
+        hit != negate
+    }
+
+    _hasWild(seg) {
+        (seg contains("*")) || (seg contains("?")) || (seg contains("["))
+    }
+
+    // Paths matching a pattern, sorted. Each "/"-separated part is matched
+    // against names with Fs match; a part that is exactly ** matches any
+    // number of directories (including none). Relative patterns are relative
+    // to the current directory and so are the results. Names starting with
+    // "." are only matched by a part that starts with ".".
+    glob(pattern) {
+        absolute = pattern startsWith("/")
+        segs = (pattern split("/")) filter { |s| s != "" }
+        found = #{}
+        self _glob(absolute ifTrue { "/" } ifFalse { "" }, segs, 0, found)
+        (found keys) sort
+    }
+
+    _glob(base, segs, i, found) {
+        (i == segs size) ifTrue {
+            (base != "" && File exists(base)) ifTrue { found set(base, true) }
+            return nil
+        }
+        seg = segs at(i)
+        dir = (base == "") ifTrue { "." } ifFalse { base }
+        (seg == "**") ifTrue {
+            self _glob(base, segs, i + 1, found)          // zero directories
+            (File isDir(dir)) ifTrue {
+                (File listDir(dir)) each { |name|
+                    p = self _join(base, name)
+                    ((name startsWith(".")) == false && File isDir(p)) ifTrue {
+                        self _glob(p, segs, i, found)     // one more directory
+                    }
+                }
+            }
+            return nil
+        }
+        (self _hasWild(seg)) ifFalse {
+            p = self _join(base, seg)
+            ((i == segs size - 1) || File isDir(p)) ifTrue { self _glob(p, segs, i + 1, found) }
+            return nil
+        }
+        (File isDir(dir)) ifFalse { return nil }
+        (File listDir(dir)) each { |name|
+            hidden = (name startsWith(".")) && ((seg startsWith(".")) == false)
+            (hidden == false && self match(seg, name)) ifTrue {
+                self _glob(self _join(base, name), segs, i + 1, found)
+            }
+        }
+        nil
+    }
+
+    // --- create, copy, move, remove ---
+
+    // Create a directory and any missing parents (no error if it exists)
+    mkdirs(path) {
+        (File isDir(path)) ifTrue { return true }
+        parts = path split("/")
+        cur = (path startsWith("/")) ifTrue { "/" } ifFalse { "" }
+        parts each { |part|
+            (part != "") ifTrue {
+                cur = (cur == "" || cur == "/") ifTrue { cur + part } ifFalse { cur + "/" + part }
+                (File isDir(cur)) ifFalse { File mkdir(cur) }
+            }
+        }
+        true
+    }
+
+    // Delete a file, or a directory and everything in it. Nothing happens
+    // if the path doesn't exist.
+    removeTree(path) {
+        (File exists(path)) ifFalse { return false }
+        (File isDir(path)) ifTrue {
+            (File listDir(path)) each { |name| self removeTree(self _join(path, name)) }
+        }
+        File delete(path)
+        true
+    }
+
+    // Copy a file, or a directory and everything in it, to `to` (created,
+    // with any missing parents; existing files are replaced)
+    copyTree(from, to) {
+        (File isDir(from)) ifFalse {
+            File copy(from, to)
+            return true
+        }
+        self mkdirs(to)
+        (File listDir(from)) each { |name|
+            self copyTree(self _join(from, name), self _join(to, name))
+        }
+        true
+    }
+
+    // Rename a file or directory; across file systems (where a plain rename
+    // fails) copy it and remove the original
+    move(from, to) {
+        (File exists(from)) ifFalse { raise("Fs move: no such file or directory: " + from) }
+        moved = try { File rename(from, to) } catch { |e| false }
+        (moved == true) ifTrue { return true }
+        self copyTree(from, to)
+        self removeTree(from)
+        true
+    }
+
+    // Run the block with a new empty temporary directory, then remove it
+    // (also when the block raises). Returns the block's result.
+    withTempDir(block) {
+        dir = File tempDir
+        // catch + re-raise rather than finally: a try with only a finally
+        // currently swallows the error
+        result = try { block value(dir) } catch { |e|
+            self removeTree(dir)
+            raise(e)
+        }
+        self removeTree(dir)
+        result
+    }
+}

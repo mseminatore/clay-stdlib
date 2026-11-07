@@ -44,6 +44,7 @@ import("stdlib/collections")
 | [env](env/) | Environment variable management with .env file support |
 | [event](event/) | Event emitter (pub/sub) pattern |
 | [format](format/) | String formatting utilities |
+| [fs](fs/) | File system helpers: walk, glob, recursive copy/move/delete, temp dirs |
 | [functional](functional/) | Functional programming utilities (map, filter, reduce, pipe) |
 | [iter](iter/) | Lazy iterator pipelines |
 | [json](json/) | JSON parsing and serialization |

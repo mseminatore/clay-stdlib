@@ -7,6 +7,7 @@
     "stdlib/collections": "github.com/mseminatore/clay-stdlib/collections",
     "stdlib/functional": "github.com/mseminatore/clay-stdlib/functional",
     "stdlib/format": "github.com/mseminatore/clay-stdlib/format",
+    "stdlib/fs": "github.com/mseminatore/clay-stdlib/fs",
     "stdlib/match": "github.com/mseminatore/clay-stdlib/match",
     "stdlib/iter": "github.com/mseminatore/clay-stdlib/iter",
     "stdlib/test": "github.com/mseminatore/clay-stdlib/test",

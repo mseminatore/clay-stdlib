@@ -1,0 +1,7 @@
+{
+  "name": "stdlib/fs",
+  "version": "0.1.0",
+  "description": "File system helpers: walk, glob, recursive copy/move/delete, temp dirs",
+  "main": "src/main.clay",
+  "deps": {}
+}
