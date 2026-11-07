@@ -227,13 +227,6 @@ Fs = Object clone {
     // (also when the block raises). Returns the block's result.
     withTempDir(block) {
         dir = File tempDir
-        // catch + re-raise rather than finally: a try with only a finally
-        // currently swallows the error
-        result = try { block value(dir) } catch { |e|
-            self removeTree(dir)
-            raise(e)
-        }
-        self removeTree(dir)
-        result
+        try { block value(dir) } finally { self removeTree(dir) }
     }
 }
