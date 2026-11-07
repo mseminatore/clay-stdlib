@@ -4,12 +4,16 @@ The Clay standard library — a collection of bricks providing common functional
 
 ## Installation
 
+The standard library ships with Clay (as the `lib/stdlib` submodule of the
+[Clay repository](https://github.com/mseminatore/clay)), so there is nothing to install. To pin a
+different version for one project, add it as a brick; a project's `bricks/stdlib` takes precedence
+over the bundled copy:
+
 ```sh
-clay bricks add github.com/mseminatore/clay-stdlib stdlib
+clay bricks add github.com/mseminatore/clay-stdlib@v1.0.0 stdlib
 ```
 
-The second argument names the brick `stdlib`, which is both its directory under `bricks/` and its
-import path. Import everything at once:
+Import everything at once:
 
 ```clay
 import("stdlib")
@@ -38,21 +42,21 @@ import("stdlib/collections")
 | [event](event/) | Event emitter (pub/sub) pattern |
 | [format](format/) | String formatting utilities |
 | [functional](functional/) | Functional programming utilities (map, filter, reduce, pipe) |
-| [http-server](http-server/) | Simple HTTP server with routing |
 | [iter](iter/) | Lazy iterator pipelines |
 | [json](json/) | JSON parsing and serialization |
 | [log](log/) | Structured logging with levels |
 | [markdown](markdown/) | Markdown to HTML converter |
 | [match](match/) | Pattern matching with a chainable API |
-| [orm](orm/) | ActiveRecord-style ORM over Clay's Db prototype |
 | [path](path/) | Path manipulation utilities |
 | [queue](queue/) | SQLite-backed persistent job queue |
-| [router](router/) | URL pattern matching with `:param` capture |
 | [template](template/) | String template engine using `{{placeholder}}` syntax |
 | [test](test/) | Simple, colorful testing framework |
 | [url](url/) | URL parsing, building, and percent encoding |
 | [uuid](uuid/) | UUID v4 generation |
 | [validate](validate/) | Schema validation for Dicts |
+
+HTTP serving, routing and the ORM live in [clay-web](https://github.com/mseminatore/clay-web)
+(`import("web/router")` and so on), which also ships with Clay.
 
 ## License
 

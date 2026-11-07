@@ -4,11 +4,7 @@ A simple, colorful testing framework for the [Clay](https://github.com/mseminato
 
 ## Installation
 
-Part of the Clay standard library:
-
-```sh
-clay bricks add github.com/mseminatore/clay-stdlib stdlib
-```
+Part of the Clay standard library, which ships with Clay — no install needed.
 
 ## Quick Start
 
