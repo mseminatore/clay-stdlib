@@ -11,7 +11,7 @@ import("stdlib/event")
 ## Example
 
 ```clay
-emitter = Emitter new()
+emitter = Emitter new
 
 // Register listeners
 emitter on("click", { |data|
@@ -37,11 +37,11 @@ emitter emit("ready")    // nothing (listener removed)
 
 | Method | Description |
 |--------|-------------|
-| `new()` | Create a new emitter |
+| `new` | Create a new emitter |
 | `on(event, handler)` | Register a listener |
 | `off(event)` | Remove all listeners for an event |
 | `emit(event)` | Trigger event with no data |
 | `emitWith(event, data)` | Trigger event with data |
 | `once(event, handler)` | Register a one-time listener |
 | `listenerCount(event)` | Number of listeners for an event |
-| `events()` | Array of all registered event names |
+| `events` | Array of all registered event names |

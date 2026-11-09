@@ -38,7 +38,7 @@ Env has("DEBUG")   // true or false
 
 ```clay
 Env load(".env")
-allVars = Env all()   // Dict of all loaded variables
+allVars = Env all   // Dict of all loaded variables
 ```
 
 ## Methods

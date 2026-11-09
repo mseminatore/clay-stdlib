@@ -11,7 +11,7 @@ import("stdlib/validate")
 ## Defining a Schema
 
 ```clay
-schema = Schema new()
+schema = Schema new
 schema required("title", "string")
 schema required("email", "string")
 schema optional("age", "number", 0)
@@ -26,7 +26,7 @@ data set("title", "Hello")
 data set("email", "test@example.com")
 
 errors = schema validate(data)
-(errors size() == 0) ifTrue {
+(errors size == 0) ifTrue {
     "Valid!" println
 } ifFalse {
     errors each { |e| e println }
@@ -53,14 +53,14 @@ schema pattern("email", "^[^@]+@[^@]+$")
 schema oneOf("role", ["admin", "user", "guest"])
 
 // Custom rule (block receives value, returns true/false)
-schema rule("title", { |v| v length() > 0 })
+schema rule("title", { |v| v length > 0 })
 ```
 
 ## Methods
 
 | Method | Description |
 |--------|-------------|
-| `new()` | Create a new schema |
+| `new` | Create a new schema |
 | `required(name, type)` | Add a required field with type check |
 | `optional(name, type, default)` | Add an optional field with default |
 | `minLength(name, n)` | Minimum length for strings/arrays |

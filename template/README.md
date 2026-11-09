@@ -11,7 +11,7 @@ import("stdlib/template")
 ## Rendering
 
 ```clay
-data = Dict new()
+data = Dict new
 data set("name", "World")
 data set("count", "3")
 
@@ -24,7 +24,7 @@ Template render("Hello, {{name}}! You have {{count}} items.", data)
 Use `renderEach` to render a template for each item in an array of Dicts:
 
 ```clay
-items = Array new()
+items = Array new
 
 d1 = Dict clone; d1 set("name", "Alice")
 d2 = Dict clone; d2 set("name", "Bob")

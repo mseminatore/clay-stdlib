@@ -8,9 +8,20 @@ ANSI terminal colors and styles for CLI tools.
 ## Usage
 
 ```clay
-cli = Cli
-cli red("Error!") println()
-cli success("All tests passed") println()
+Cli red("Error!") println
+Cli success("All tests passed") println
+```
+
+Or if you might want to modify or extend the behavior...
+
+```clay
+cli = Cli clone {
+    info(s) { self bold(self blue(s))}
+}
+
+cli red("Error!") println
+cli info("Running tests") printlin
+cli success("All tests passed") println
 ```
 
 ## API
@@ -83,10 +94,10 @@ Methods can be nested to combine styles:
 
 ```clay
 // Bold red text
-cli bold(cli red("Error!")) println()
+cli bold(cli red("Error!")) println
 
 // Underlined cyan
-cli underline(cli cyan("link")) println()
+cli underline(cli cyan("link")) println
 ```
 
 The convenience methods `success`, `warning`, and `error` already combine

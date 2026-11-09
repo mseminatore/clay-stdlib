@@ -23,7 +23,7 @@ parts get("fragment")   // "top"
 ## Building
 
 ```clay
-parts = Dict new()
+parts = Dict new
 parts set("protocol", "https")
 parts set("host", "example.com")
 parts set("path", "/search")

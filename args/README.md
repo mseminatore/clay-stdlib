@@ -46,7 +46,7 @@ Options are passed as `--output file.txt` or `-o file.txt`.
 ## Usage Help
 
 ```clay
-parser usage()
+parser usage
 ```
 
 Output:

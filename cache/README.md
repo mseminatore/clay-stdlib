@@ -5,7 +5,7 @@ In-memory LRU/TTL key-value cache for Clay.
 ## Usage
 
 ```clay
-cache = Cache new() maxSize(100) ttl(60)
+cache = Cache new maxSize(100) ttl(60)
 ```
 
 ## Methods
@@ -15,7 +15,7 @@ cache = Cache new() maxSize(100) ttl(60)
 Create a new cache instance.
 
 ```clay
-c = Cache new()
+c = Cache new
 ```
 
 ### `maxSize(n)`
@@ -23,7 +23,7 @@ c = Cache new()
 Set the maximum number of entries. When the limit is reached, the least recently used entry is evicted. Pass `0` for unlimited (default). Returns self for chaining.
 
 ```clay
-c = Cache new() maxSize(50)
+c = Cache new maxSize(50)
 ```
 
 ### `ttl(seconds)`
@@ -31,7 +31,7 @@ c = Cache new() maxSize(50)
 Set the time-to-live in seconds for all entries. Expired entries are removed on the next `get` or `has` call. Pass `0` to disable expiry (default). Returns self for chaining.
 
 ```clay
-c = Cache new() ttl(300)
+c = Cache new ttl(300)
 ```
 
 ### `set(k, v)`
@@ -74,7 +74,7 @@ c delete("name")
 Remove all entries from the cache. Returns self for chaining.
 
 ```clay
-c clear()
+c clear
 ```
 
 ### `size()`
@@ -82,7 +82,7 @@ c clear()
 Return the number of entries currently in the cache.
 
 ```clay
-c size() // => 0
+c size // => 0
 ```
 
 ### `keys()`
@@ -93,13 +93,13 @@ Return an array of all keys in LRU order (least recently used first).
 c set("a", 1)
 c set("b", 2)
 c get("a")
-c keys() // => ["b", "a"]
+c keys // => ["b", "a"]
 ```
 
 ## Example
 
 ```clay
-cache = Cache new() maxSize(3) ttl(60)
+cache = Cache new maxSize(3) ttl(60)
 
 cache set("x", 10)
 cache set("y", 20)
@@ -110,6 +110,6 @@ cache get("x")      // => 10, "x" is now most recently used
 cache set("w", 40)  // evicts "y" (least recently used)
 
 cache has("y")      // => false
-cache size()        // => 3
-cache keys()        // => ["z", "x", "w"]
+cache size          // => 3
+cache keys          // => ["z", "x", "w"]
 ```

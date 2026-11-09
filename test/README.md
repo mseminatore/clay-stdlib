@@ -21,7 +21,7 @@ Test describe("Math", {
     })
 })
 
-Test run()
+Test run
 ```
 
 Output:
@@ -84,12 +84,12 @@ Test it("catches division by zero", {
 })
 ```
 
-### `Test run()`
+### `Test run`
 
 Prints the test summary. Call this after all `describe` blocks.
 
 ```clay
-Test run()
+Test run
 // => 5 tests, 5 passed, 0 failed
 ```
 

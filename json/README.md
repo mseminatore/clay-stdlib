@@ -34,7 +34,7 @@ Json parse("\"hello\"") // "hello"
 ## Serialization
 
 ```clay
-d = Dict clone()
+d = Dict clone
 d set("name", "Clay")
 d set("version", 1)
 
@@ -45,7 +45,7 @@ Json prettyPrint(d)              // formatted with indentation
 Json stringify([1, 2, 3])       // [1,2,3]
 
 // Nested
-Json stringify([Dict clone() set("a", 1)])
+Json stringify([Dict clone set("a", 1)])
 ```
 
 ## Methods

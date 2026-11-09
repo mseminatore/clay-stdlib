@@ -30,14 +30,14 @@ queue push("email", "user_id=42")
 queue push("report", "month=june")
 ```
 
-### `pop()`
+### `pop`
 
 Retrieves the next pending job, marks it as `'processing'`, and returns it as a
 Dict with keys `id`, `type`, `payload`, and `status`. Returns `nil` if no
 pending jobs exist.
 
 ```clay
-job = queue pop()
+job = queue pop
 (job != nil) ifTrue {
   job get("type")    // => "email"
   job get("payload") // => "user_id=42"
@@ -49,7 +49,7 @@ job = queue pop()
 Marks a job as `'done'`.
 
 ```clay
-job = queue pop()
+job = queue pop
 // ... do work ...
 queue complete(job)
 ```
@@ -59,57 +59,57 @@ queue complete(job)
 Marks a job as `'failed'` and stores the reason in the payload.
 
 ```clay
-job = queue pop()
+job = queue pop
 queue fail(job, "connection timeout")
 ```
 
-### `pending()`
+### `pending`
 
 Returns the count of pending jobs.
 
 ```clay
-queue pending() // => 3
+queue pending // => 3
 ```
 
-### `processing()`
+### `processing`
 
 Returns the count of jobs currently being processed.
 
 ```clay
-queue processing() // => 1
+queue processing // => 1
 ```
 
-### `failed()`
+### `failed`
 
 Returns the count of failed jobs.
 
 ```clay
-queue failed() // => 2
+queue failed // => 2
 ```
 
-### `retry()`
+### `retry`
 
 Resets all failed jobs back to `'pending'` so they can be processed again.
 
 ```clay
-queue retry()
-queue pending() // failed jobs are now pending again
+queue retry
+queue pending // failed jobs are now pending again
 ```
 
-### `clear()`
+### `clear`
 
 Deletes all completed (`'done'`) jobs from the queue.
 
 ```clay
-queue clear()
+queue clear
 ```
 
-### `size()`
+### `size`
 
 Returns the total count of all jobs in the queue regardless of status.
 
 ```clay
-queue size() // => 10
+queue size // => 10
 ```
 
 ## Schema
