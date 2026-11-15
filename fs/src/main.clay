@@ -33,16 +33,16 @@ Fs = Object clone {
     walk(dir, block = nil) {
         (File isDir(dir)) ifFalse { raise("Fs walk: not a directory: " + dir) }
         found = []
-        self _walk(dir, found)
+        _walk(dir, found)
         (block == nil) ifTrue { return found }
-        found each { |p| block value(p) }
+        found each { |p| block(p) }
         nil
     }
 
     _walk(dir, found) {
         (File listDir(dir)) each { |name|
-            p = self _join(dir, name)
-            (File isDir(p)) ifTrue { self _walk(p, found) } ifFalse { found push(p) }
+            p = _join(dir, name)
+            (File isDir(p)) ifTrue { _walk(p, found) } ifFalse { found push(p) }
         }
     }
 
@@ -51,7 +51,7 @@ Fs = Object clone {
     // Does a single name match a glob pattern? * any run of characters,
     // ? one character, [abc] / [a-z] / [!abc] a character class.
     match(pattern, name) {
-        self _match(pattern, 0, name, 0)
+        _match(pattern, 0, name, 0)
     }
 
     _match(pat, pi, s, si) {
@@ -63,7 +63,7 @@ Fs = Object clone {
                 (pi == pat length) ifTrue { return true }
                 k = si
                 { k <= s length } whileTrue {
-                    (self _match(pat, pi, s, k)) ifTrue { return true }
+                    (_match(pat, pi, s, k)) ifTrue { return true }
                     k = k + 1
                 }
                 return false
@@ -75,9 +75,9 @@ Fs = Object clone {
                 continue
             }
             (c == "[") ifTrue {
-                close = self _classEnd(pat, pi)
+                close = _classEnd(pat, pi)
                 (close > 0) ifTrue {
-                    (self _inClass(pat slice(pi + 1, close), s at(si))) ifFalse { return false }
+                    (_inClass(pat slice(pi + 1, close), s at(si))) ifFalse { return false }
                     pi = close + 1
                     si = si + 1
                     continue
@@ -133,7 +133,7 @@ Fs = Object clone {
         absolute = pattern startsWith("/")
         segs = (pattern split("/")) filter { |s| s != "" }
         found = #{}
-        self _glob(absolute ifTrue { "/" } ifFalse { "" }, segs, 0, found)
+        _glob(absolute ifTrue { "/" } ifFalse { "" }, segs, 0, found)
         (found keys) sort
     }
 
@@ -145,27 +145,27 @@ Fs = Object clone {
         seg = segs at(i)
         dir = (base == "") ifTrue { "." } ifFalse { base }
         (seg == "**") ifTrue {
-            self _glob(base, segs, i + 1, found)          // zero directories
+            _glob(base, segs, i + 1, found)          // zero directories
             (File isDir(dir)) ifTrue {
                 (File listDir(dir)) each { |name|
-                    p = self _join(base, name)
+                    p = _join(base, name)
                     ((name startsWith(".")) == false && File isDir(p)) ifTrue {
-                        self _glob(p, segs, i, found)     // one more directory
+                        _glob(p, segs, i, found)     // one more directory
                     }
                 }
             }
             return nil
         }
-        (self _hasWild(seg)) ifFalse {
-            p = self _join(base, seg)
-            ((i == segs size - 1) || File isDir(p)) ifTrue { self _glob(p, segs, i + 1, found) }
+        (_hasWild(seg)) ifFalse {
+            p = _join(base, seg)
+            ((i == segs size - 1) || File isDir(p)) ifTrue { _glob(p, segs, i + 1, found) }
             return nil
         }
         (File isDir(dir)) ifFalse { return nil }
         (File listDir(dir)) each { |name|
             hidden = (name startsWith(".")) && ((seg startsWith(".")) == false)
-            (hidden == false && self match(seg, name)) ifTrue {
-                self _glob(self _join(base, name), segs, i + 1, found)
+            (hidden == false && match(seg, name)) ifTrue {
+                _glob(_join(base, name), segs, i + 1, found)
             }
         }
         nil
@@ -192,7 +192,7 @@ Fs = Object clone {
     removeTree(path) {
         (File exists(path)) ifFalse { return false }
         (File isDir(path)) ifTrue {
-            (File listDir(path)) each { |name| self removeTree(self _join(path, name)) }
+            (File listDir(path)) each { |name| removeTree(_join(path, name)) }
         }
         File delete(path)
         true
@@ -205,9 +205,9 @@ Fs = Object clone {
             File copy(from, to)
             return true
         }
-        self mkdirs(to)
+        mkdirs(to)
         (File listDir(from)) each { |name|
-            self copyTree(self _join(from, name), self _join(to, name))
+            copyTree(_join(from, name), _join(to, name))
         }
         true
     }
@@ -218,8 +218,8 @@ Fs = Object clone {
         (File exists(from)) ifFalse { raise("Fs move: no such file or directory: " + from) }
         moved = try { File rename(from, to) } catch { |e| false }
         (moved == true) ifTrue { return true }
-        self copyTree(from, to)
-        self removeTree(from)
+        copyTree(from, to)
+        removeTree(from)
         true
     }
 
@@ -227,6 +227,6 @@ Fs = Object clone {
     // (also when the block raises). Returns the block's result.
     withTempDir(block) {
         dir = File tempDir
-        try { block value(dir) } finally { self removeTree(dir) }
+        try { block(dir) } finally { removeTree(dir) }
     }
 }

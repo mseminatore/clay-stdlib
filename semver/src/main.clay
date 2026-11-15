@@ -54,19 +54,19 @@ Semver = Object clone {
         parts = s split(".")
         ((parts size) == 3) ifFalse { raise("Semver: invalid version '" + text + "'") }
         v = _SemverVersion clone
-        v major = self _num(parts at(0), text)
-        v minor = self _num(parts at(1), text)
-        v patch = self _num(parts at(2), text)
+        v major = _num(parts at(0), text)
+        v minor = _num(parts at(1), text)
+        v patch = _num(parts at(2), text)
         v prerelease = pre
         v build = build
         v
     }
 
     valid(text) {
-        (try { self parse(text) } catch { |e| nil }) != nil
+        (try { parse(text) } catch { |e| nil }) != nil
     }
 
-    _v(x) { ((x type) == "String") ifTrue { self parse(x) } ifFalse { x } }
+    _v(x) { ((x type) == "String") ifTrue { parse(x) } ifFalse { x } }
 
     // --- comparison ---
 
@@ -87,11 +87,11 @@ Semver = Object clone {
     _cmpStr(a, b) {
         i = 0
         { i < a length && i < b length } whileTrue {
-            c = self _cmpInt(a byteAt(i), b byteAt(i))
+            c = _cmpInt(a byteAt(i), b byteAt(i))
             (c != 0) ifTrue { return c }
             i = i + 1
         }
-        self _cmpInt(a length, b length)
+        _cmpInt(a length, b length)
     }
 
     _cmpPre(a, b) {
@@ -104,36 +104,36 @@ Semver = Object clone {
         { i < pa size && i < pb size } whileTrue {
             x = pa at(i)
             y = pb at(i)
-            nx = self _isNumeric(x)
-            ny = self _isNumeric(y)
+            nx = _isNumeric(x)
+            ny = _isNumeric(y)
             c = 0
-            (nx && ny) ifTrue { c = self _cmpInt(x toInt, y toInt) } ifFalse {
+            (nx && ny) ifTrue { c = _cmpInt(x toInt, y toInt) } ifFalse {
                 nx ifTrue { c = -1 } ifFalse {
                     ny ifTrue { c = 1 } ifFalse {
-                        c = self _cmpStr(x, y)
+                        c = _cmpStr(x, y)
                     }
                 }
             }
             (c != 0) ifTrue { return c }
             i = i + 1
         }
-        self _cmpInt(pa size, pb size)
+        _cmpInt(pa size, pb size)
     }
 
     // -1, 0 or 1 by precedence (build metadata is ignored)
     compare(a, b) {
-        va = self _v(a)
-        vb = self _v(b)
-        c = self _cmpInt(va major, vb major)
-        (c == 0) ifTrue { c = self _cmpInt(va minor, vb minor) }
-        (c == 0) ifTrue { c = self _cmpInt(va patch, vb patch) }
-        (c == 0) ifTrue { c = self _cmpPre(va prerelease, vb prerelease) }
+        va = _v(a)
+        vb = _v(b)
+        c = _cmpInt(va major, vb major)
+        (c == 0) ifTrue { c = _cmpInt(va minor, vb minor) }
+        (c == 0) ifTrue { c = _cmpInt(va patch, vb patch) }
+        (c == 0) ifTrue { c = _cmpPre(va prerelease, vb prerelease) }
         c
     }
 
-    lt(a, b) { (self compare(a, b)) < 0 }
-    gt(a, b) { (self compare(a, b)) > 0 }
-    eq(a, b) { (self compare(a, b)) == 0 }
+    lt(a, b) { (compare(a, b)) < 0 }
+    gt(a, b) { (compare(a, b)) > 0 }
+    eq(a, b) { (compare(a, b)) == 0 }
 
     // ascending; the input isn't changed
     sort(versions) {
@@ -143,7 +143,7 @@ Semver = Object clone {
         i = 1
         { i < out size } whileTrue {
             j = i
-            { j > 0 && (self compare(out at(j - 1), out at(j))) > 0 } whileTrue {
+            { j > 0 && (compare(out at(j - 1), out at(j))) > 0 } whileTrue {
                 tmp = out at(j)
                 out setAt(j, out at(j - 1))
                 out setAt(j - 1, tmp)
@@ -156,14 +156,14 @@ Semver = Object clone {
 
     max(versions) {
         best = nil
-        versions each { |v| ((best == nil) || (self compare(v, best)) > 0) ifTrue { best = v } }
+        versions each { |v| ((best == nil) || (compare(v, best)) > 0) ifTrue { best = v } }
         best
     }
 
     // the next version: "major", "minor", "patch" (a prerelease of x.y.z bumps
     // to x.y.z for "patch"), keeping nothing else
     inc(version, part) {
-        v = self _v(version)
+        v = _v(version)
         (part == "major") ifTrue { return ((v major) + 1) toString + ".0.0" }
         (part == "minor") ifTrue { return (v major) toString + "." + ((v minor) + 1) toString + ".0" }
         (part == "patch") ifTrue {
@@ -197,7 +197,7 @@ Semver = Object clone {
         parts each { |p|
             wild = p == "*" || p == "x" || p == "X"
             (wild || stop) ifTrue { stop = true } ifFalse {
-                out setAt(i, self _num(p, whole))
+                out setAt(i, _num(p, whole))
             }
             i = i + 1
         }
@@ -221,22 +221,22 @@ Semver = Object clone {
         ops each { |o| ((op == "") && (tok startsWith(o))) ifTrue { op = o } }
         (op == "~" && tok startsWith("~>")) ifTrue { tok = "~" + (tok slice(2, tok length)) }
         rest = (tok slice(op length, tok length)) trim
-        p = self _partial(rest, whole)
+        p = _partial(rest, whole)
         maj = p at(0)
         min = p at(1)
         pat = p at(2)
         pre = p at(3)
         (maj == nil) ifTrue {
-            ((op == "<") || (op == ">")) ifTrue { return [["<", self _ver(0, 0, 0, "0")]] }
+            ((op == "<") || (op == ">")) ifTrue { return [["<", _ver(0, 0, 0, "0")]] }
             return []                                           // anything
         }
         (op == "^") ifTrue {
-            lo = self _ver(maj, min ?? 0, pat ?? 0, pre)
+            lo = _ver(maj, min ?? 0, pat ?? 0, pre)
             hi = nil
-            (maj > 0) ifTrue { hi = self _ver(maj + 1, 0, 0, "") } ifFalse {
-                (min == nil) ifTrue { hi = self _ver(1, 0, 0, "") } ifFalse {
-                    ((min > 0) || (pat == nil)) ifTrue { hi = self _ver(0, min + 1, 0, "") } ifFalse {
-                        hi = self _ver(0, 0, pat + 1, "")
+            (maj > 0) ifTrue { hi = _ver(maj + 1, 0, 0, "") } ifFalse {
+                (min == nil) ifTrue { hi = _ver(1, 0, 0, "") } ifFalse {
+                    ((min > 0) || (pat == nil)) ifTrue { hi = _ver(0, min + 1, 0, "") } ifFalse {
+                        hi = _ver(0, 0, pat + 1, "")
                     }
                 }
             }
@@ -244,16 +244,16 @@ Semver = Object clone {
         }
         // a full x.y.z with = or no operator is exact; ~ and partials are ranges
         exact = (pat != nil) && (op == "" || op == "=")
-        exact ifTrue { return [["=", self _ver(maj, min, pat, pre)]] }
+        exact ifTrue { return [["=", _ver(maj, min, pat, pre)]] }
         (op == "~" || op == "" || op == "=") ifTrue {
-            lo = self _ver(maj, min ?? 0, pat ?? 0, pre)
-            hi = (min == nil) ifTrue { self _ver(maj + 1, 0, 0, "") } ifFalse { self _ver(maj, min + 1, 0, "") }
+            lo = _ver(maj, min ?? 0, pat ?? 0, pre)
+            hi = (min == nil) ifTrue { _ver(maj + 1, 0, 0, "") } ifFalse { _ver(maj, min + 1, 0, "") }
             return [[">=", lo], ["<", hi]]
         }
         // < <= > >= with a partial: fill with zeros, or bump past it
-        full = self _ver(maj, min ?? 0, pat ?? 0, pre)
+        full = _ver(maj, min ?? 0, pat ?? 0, pre)
         (pat != nil) ifTrue { return [[op, full]] }
-        next = (min == nil) ifTrue { self _ver(maj + 1, 0, 0, "") } ifFalse { self _ver(maj, min + 1, 0, "") }
+        next = (min == nil) ifTrue { _ver(maj + 1, 0, 0, "") } ifFalse { _ver(maj, min + 1, 0, "") }
         (op == ">=") ifTrue { return [[">=", full]] }
         (op == "<") ifTrue { return [["<", full]] }
         (op == ">") ifTrue { return [[">=", next]] }
@@ -262,8 +262,8 @@ Semver = Object clone {
 
     // "1.2.3 - 2.3" -> [>=1.2.3, <=2.3.0 or <2.4.0]
     _hyphen(a, b, whole) {
-        lo = self _comparators(">=" + a, whole)
-        hi = self _comparators("<=" + b, whole)        // a partial bumps: - 2.3 is <2.4.0
+        lo = _comparators(">=" + a, whole)
+        hi = _comparators("<=" + b, whole)        // a partial bumps: - 2.3 is <2.4.0
         out = []
         lo each { |c| out push(c) }
         hi each { |c| out push(c) }
@@ -278,7 +278,7 @@ Semver = Object clone {
             set = []
             (s contains(" - ")) ifTrue {
                 i = s indexOf(" - ")
-                set = self _hyphen((s slice(0, i)) trim, (s slice(i + 3, s length)) trim, range)
+                set = _hyphen((s slice(0, i)) trim, (s slice(i + 3, s length)) trim, range)
             } ifFalse {
                 // "> = 1.2" / ">= 1.2": join an operator to its version
                 toks = []
@@ -293,7 +293,7 @@ Semver = Object clone {
                         }
                     }
                 }
-                toks each { |t| (self _comparators(t, range)) each { |c| set push(c) } }
+                toks each { |t| (_comparators(t, range)) each { |c| set push(c) } }
             }
             sets push(set)
         }
@@ -301,7 +301,7 @@ Semver = Object clone {
     }
 
     _test(op, v, target) {
-        c = self compare(v, target)
+        c = compare(v, target)
         (op == "=") ifTrue { return c == 0 }
         (op == "<") ifTrue { return c < 0 }
         (op == "<=") ifTrue { return c <= 0 }
@@ -311,7 +311,7 @@ Semver = Object clone {
 
     _satisfiesSet(v, set) {
         ok = true
-        set each { |c| (self _test(c at(0), v, c at(1))) ifFalse { ok = false } }
+        set each { |c| (_test(c at(0), v, c at(1))) ifFalse { ok = false } }
         ok ifFalse { return false }
         ((v prerelease) == "") ifTrue { return true }
         // a prerelease must be named by a comparator with the same x.y.z
@@ -325,15 +325,15 @@ Semver = Object clone {
     }
 
     satisfies(version, range) {
-        v = self _v(version)
+        v = _v(version)
         hit = false
-        (self _parseRange(range)) each { |set| (self _satisfiesSet(v, set)) ifTrue { hit = true } }
+        (_parseRange(range)) each { |set| (_satisfiesSet(v, set)) ifTrue { hit = true } }
         hit
     }
 
     // the highest of versions in the range, or nil
     maxSatisfying(versions, range) {
-        self max(versions filter { |v| self satisfies(v, range) })
+        max(versions filter { |v| satisfies(v, range) })
     }
 }
 

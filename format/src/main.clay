@@ -80,7 +80,7 @@ Fmt = Object clone {
         words = str split(" ")
         result = []
         words each { |w|
-            result append(self capitalize(w))
+            result append(capitalize(w))
         }
         result join(" ")
     }

@@ -63,7 +63,7 @@ Env = Object clone {
 
     // Get an environment variable, raise an error if not set.
     require(name) {
-        val = self get(name, nil)
+        val = get(name, nil)
         (val == nil) ifTrue {
             ("Required environment variable not set: " + name) println
             System exit(1)

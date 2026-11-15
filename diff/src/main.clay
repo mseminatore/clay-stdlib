@@ -23,7 +23,7 @@ Diff = Object clone {
 
     // [op, line] pairs: "=" kept, "-" only in a, "+" only in b
     lines(a, b) {
-        self _diff(self _lines(a), self _lines(b))
+        _diff(_lines(a), _lines(b))
     }
 
     _diff(a, b) {
@@ -85,7 +85,7 @@ Diff = Object clone {
     stats(a, b) {
         added = 0
         removed = 0
-        (self lines(a, b)) each { |op|
+        (lines(a, b)) each { |op|
             ((op at(0)) == "+") ifTrue { added = added + 1 }
             ((op at(0)) == "-") ifTrue { removed = removed + 1 }
         }
@@ -102,7 +102,7 @@ Diff = Object clone {
     // A unified diff (diff -u / git diff style) with `context` lines around
     // each change; "" when the inputs are the same
     unified(a, b, fromName = "a", toName = "b", context = 3) {
-        ops = self lines(a, b)
+        ops = lines(a, b)
         changes = []
         i = 0
         ops each { |op| ((op at(0)) != "=") ifTrue { changes push(i) }; i = i + 1 }
@@ -149,7 +149,7 @@ Diff = Object clone {
                 body = body + ((kind == "=") ifTrue { " " } ifFalse { kind }) + (op at(1)) + "\n"
                 j = j + 1
             }
-            out = out + "@@ -" + (self _range(aLine at(s), ca)) + " +" + (self _range(bLine at(s), cb)) + " @@\n" + body
+            out = out + "@@ -" + (_range(aLine at(s), ca)) + " +" + (_range(bLine at(s), cb)) + " @@\n" + body
         }
         out
     }

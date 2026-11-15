@@ -21,55 +21,55 @@ Schema = Object clone {
 
     // Add a required field with type check
     required(name, type) {
-        self _fields push(self _makeField(name, type, true, nil))
+        self _fields push(_makeField(name, type, true, nil))
         self
     }
 
     // Add an optional field with type check and default value
     optional(name, type, default) {
-        self _fields push(self _makeField(name, type, false, default))
+        self _fields push(_makeField(name, type, false, default))
         self
     }
 
     // Add a minimum length constraint (for strings/arrays)
     minLength(name, n) {
-        self _addRule(name, "minLength", n)
+        _addRule(name, "minLength", n)
         self
     }
 
     // Add a maximum length constraint (for strings/arrays)
     maxLength(name, n) {
-        self _addRule(name, "maxLength", n)
+        _addRule(name, "maxLength", n)
         self
     }
 
     // Add a minimum value constraint (for numbers)
     min(name, n) {
-        self _addRule(name, "min", n)
+        _addRule(name, "min", n)
         self
     }
 
     // Add a maximum value constraint (for numbers)
     max(name, n) {
-        self _addRule(name, "max", n)
+        _addRule(name, "max", n)
         self
     }
 
     // Add a regex pattern constraint (for strings)
     pattern(name, regex) {
-        self _addRule(name, "pattern", regex)
+        _addRule(name, "pattern", regex)
         self
     }
 
     // Add a set of allowed values
     oneOf(name, values) {
-        self _addRule(name, "oneOf", values)
+        _addRule(name, "oneOf", values)
         self
     }
 
     // Add a custom validation rule (block receives value, returns true/false)
     rule(name, fn) {
-        self _addRule(name, "custom", fn)
+        _addRule(name, "custom", fn)
         self
     }
 
@@ -170,7 +170,7 @@ Schema = Object clone {
                                 }
                             }
                             (ruleType == "custom") ifTrue {
-                                (ruleVal value(val) == false) ifTrue {
+                                (ruleVal(val) == false) ifTrue {
                                     errors push(name + " failed custom validation")
                                 }
                             }

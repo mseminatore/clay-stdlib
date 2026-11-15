@@ -37,7 +37,7 @@ Markdown = Object clone {
       inCodeBlock ifTrue {
         // closed by a run of at least as many backticks as opened it
         (line trim() startsWith("`" repeat(codeFence))) ifTrue {
-          out push(self _codeBlock(codeLines, codeLang))
+          out push(_codeBlock(codeLines, codeLang))
           codeLines = Array new()
           inCodeBlock = false
         } ifFalse {
@@ -48,18 +48,18 @@ Markdown = Object clone {
 
         // Check for fenced code block start
         (trimmed startsWith("```")) ifTrue {
-          self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
-          self _closeAllLists(out, listStack)
+          _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+          _closeAllLists(out, listStack)
           listStack = Array new()
-          self _closeTable(out, inTable) ifTrue { inTable = false }
-          self _closeBlockquote(out, inBlockquote, bqLines) ifTrue {
+          _closeTable(out, inTable) ifTrue { inTable = false }
+          _closeBlockquote(out, inBlockquote, bqLines) ifTrue {
             inBlockquote = false
             bqLines = Array new()
           }
           inCodeBlock = true
           codeLines = Array new()
-          codeFence = self _backtickRun(trimmed)
-          codeLang = self _fenceLanguage(trimmed slice(codeFence, trimmed length))
+          codeFence = _backtickRun(trimmed)
+          codeLang = _fenceLanguage(trimmed slice(codeFence, trimmed length))
         } ifFalse {
           // Check for horizontal rule
           isHR = false
@@ -68,11 +68,11 @@ Markdown = Object clone {
           (trimmed == "___") ifTrue { isHR = true }
 
           isHR ifTrue {
-            self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
-            self _closeAllLists(out, listStack)
+            _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+            _closeAllLists(out, listStack)
             listStack = Array new()
-            self _closeTable(out, inTable) ifTrue { inTable = false }
-            self _closeBlockquote(out, inBlockquote, bqLines) ifTrue {
+            _closeTable(out, inTable) ifTrue { inTable = false }
+            _closeBlockquote(out, inBlockquote, bqLines) ifTrue {
               inBlockquote = false
               bqLines = Array new()
             }
@@ -88,11 +88,11 @@ Markdown = Object clone {
             (line startsWith("###### ")) ifTrue { isHeading = true }
 
             isHeading ifTrue {
-              self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
-              self _closeAllLists(out, listStack)
+              _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+              _closeAllLists(out, listStack)
               listStack = Array new()
-              self _closeTable(out, inTable) ifTrue { inTable = false }
-              self _closeBlockquote(out, inBlockquote, bqLines) ifTrue {
+              _closeTable(out, inTable) ifTrue { inTable = false }
+              _closeBlockquote(out, inBlockquote, bqLines) ifTrue {
                 inBlockquote = false
                 bqLines = Array new()
               }
@@ -104,8 +104,8 @@ Markdown = Object clone {
               (line startsWith("## ")) ifTrue { level = 2 }
               (line startsWith("# ")) ifTrue { level = 1 }
               raw = line slice(level + 1, line length()) trim
-              content = self _inline(raw)
-              out push("<h" + level toString + " id=\"" + (self _slug(raw)) + "\">" + content +
+              content = _inline(raw)
+              out push("<h" + level toString + " id=\"" + (_slug(raw)) + "\">" + content +
                        "</h" + level toString + ">")
             } ifFalse {
               // Check for blockquote
@@ -114,10 +114,10 @@ Markdown = Object clone {
               (trimmed == ">") ifTrue { isBlockquote = true }
 
               isBlockquote ifTrue {
-                self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
-                self _closeAllLists(out, listStack)
+                _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+                _closeAllLists(out, listStack)
                 listStack = Array new()
-                self _closeTable(out, inTable) ifTrue { inTable = false }
+                _closeTable(out, inTable) ifTrue { inTable = false }
                 content = ""
                 (trimmed == ">") ifTrue {
                   content = ""
@@ -131,7 +131,7 @@ Markdown = Object clone {
                 bqLines push(content)
               } ifFalse {
                 // Close blockquote if we were in one
-                self _closeBlockquote(out, inBlockquote, bqLines) ifTrue {
+                _closeBlockquote(out, inBlockquote, bqLines) ifTrue {
                   inBlockquote = false
                   bqLines = Array new()
                 }
@@ -141,8 +141,8 @@ Markdown = Object clone {
                 (trimmed startsWith("|")) ifTrue { isTableRow = true }
 
                 isTableRow ifTrue {
-                  self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
-                  self _closeAllLists(out, listStack)
+                  _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+                  _closeAllLists(out, listStack)
                   listStack = Array new()
 
                   inTable ifFalse {
@@ -159,43 +159,43 @@ Markdown = Object clone {
 
                     hasSep ifTrue {
                       // Parse header cells
-                      cells = self _parseTableCells(trimmed)
+                      cells = _parseTableCells(trimmed)
                       // Parse separator for alignment
                       sepLine = lines at(nextIdx) trim
-                      tableAligns = self _parseAligns(sepLine)
+                      tableAligns = _parseAligns(sepLine)
                       out push("<table style=\"border-collapse: collapse\">")
                       out push("<thead>")
-                      out push(self _tableRow(cells, "th", tableAligns))
+                      out push(_tableRow(cells, "th", tableAligns))
                       out push("</thead>")
                       out push("<tbody>")
                       inTable = true
                       i = i + 1 // skip separator line
                     } ifFalse {
                       // No separator — treat as data rows
-                      cells = self _parseTableCells(trimmed)
+                      cells = _parseTableCells(trimmed)
                       tableAligns = Array new()
                       out push("<table style=\"border-collapse: collapse\">")
                       out push("<tbody>")
-                      out push(self _tableRow(cells, "td", tableAligns))
+                      out push(_tableRow(cells, "td", tableAligns))
                       inTable = true
                     }
                   } ifTrue {
                     // Continuing table — data row
-                    cells = self _parseTableCells(trimmed)
-                    out push(self _tableRow(cells, "td", tableAligns))
+                    cells = _parseTableCells(trimmed)
+                    out push(_tableRow(cells, "td", tableAligns))
                   }
                 } ifFalse {
                   // Close table if we were in one
-                  self _closeTable(out, inTable) ifTrue { inTable = false }
+                  _closeTable(out, inTable) ifTrue { inTable = false }
 
                   // Check for list item (with indent support)
-                  indent = self _indentLevel(line)
+                  indent = _indentLevel(line)
                   stripped = line trim
-                  listInfo = self _listItemInfo(stripped)
+                  listInfo = _listItemInfo(stripped)
                   isListItem = listInfo at(0)
 
                   (isListItem == true) ifTrue {
-                    self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+                    _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
                     itemType = listInfo at(1)
                     itemText = listInfo at(2)
                     depth = indent / 2
@@ -226,28 +226,28 @@ Markdown = Object clone {
                     }
 
                     lastItem = [itemType, itemText, listInfo at(3), out size]
-                    out push(self _listItem(itemType, itemText, listInfo at(3)))
+                    out push(_listItem(itemType, itemText, listInfo at(3)))
                   } ifFalse {
                     // Check for blank line
                     (trimmed length == 0) ifTrue {
-                      self _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
-                      self _closeAllLists(out, listStack)
+                      _closeParagraph(out, inParagraph) ifTrue { inParagraph = false }
+                      _closeAllLists(out, listStack)
                       listStack = Array new()
                     } ifFalse {
                       (listStack size > 0 && lastItem != nil) ifTrue {
                         // a continuation line of the open list item
                         lastItem setAt(1, (lastItem at(1)) + " " + trimmed)
-                        out setAt(lastItem at(3), self _listItem(lastItem at(0), lastItem at(1), lastItem at(2)))
+                        out setAt(lastItem at(3), _listItem(lastItem at(0), lastItem at(1), lastItem at(2)))
                         i = i + 1
                         continue
                       }
                       // Regular text line — paragraph
-                      self _closeAllLists(out, listStack)
+                      _closeAllLists(out, listStack)
                       listStack = Array new()
                       inParagraph ifTrue {
-                        out push(self _inline(line))
+                        out push(_inline(line))
                       } ifFalse {
-                        out push("<p>" + self _inline(line))
+                        out push("<p>" + _inline(line))
                         inParagraph = true
                       }
                     }
@@ -264,11 +264,11 @@ Markdown = Object clone {
 
     // Close any open blocks
     inParagraph ifTrue { out push("</p>") }
-    self _closeAllLists(out, listStack)
-    self _closeTable(out, inTable)
-    self _closeBlockquote(out, inBlockquote, bqLines)
+    _closeAllLists(out, listStack)
+    _closeTable(out, inTable)
+    _closeBlockquote(out, inBlockquote, bqLines)
     inCodeBlock ifTrue {
-      out push(self _codeBlock(codeLines, codeLang))
+      out push(_codeBlock(codeLines, codeLang))
     }
 
     out join("\n")
@@ -303,7 +303,7 @@ Markdown = Object clone {
     flag ifTrue {
       // Render blockquote content through render() recursively
       inner = lines join("\n")
-      rendered = self _inline(inner)
+      rendered = _inline(inner)
       out push("<blockquote><p>" + rendered + "</p></blockquote>")
       true
     } ifFalse { false }
@@ -337,7 +337,7 @@ Markdown = Object clone {
         (stripped startsWith("+ ")) ifTrue {
           [true, "ul", stripped slice(2, stripped length), 0]
         } ifFalse {
-          isOL = self _isOrderedList(stripped)
+          isOL = _isOrderedList(stripped)
           isOL ifTrue {
             dotPos = stripped indexOf(". ")
             num = stripped slice(0, dotPos) toInt
@@ -352,9 +352,9 @@ Markdown = Object clone {
 
   _listItem(itemType, text, num) {
     (itemType == "ol") ifTrue {
-      "<li value=\"" + num toString + "\">" + self _inline(text) + "</li>"
+      "<li value=\"" + num toString + "\">" + _inline(text) + "</li>"
     } ifFalse {
-      "<li>" + self _inline(text) + "</li>"
+      "<li>" + _inline(text) + "</li>"
     }
   }
 
@@ -420,7 +420,7 @@ Markdown = Object clone {
     idx = 0
     { idx < cells size } whileTrue {
       cell = cells at(idx)
-      content = self _inline(cell)
+      content = _inline(cell)
       styles = "border: 1px solid #ddd; padding: 6px 13px"
       (idx < aligns size) ifTrue {
         a = aligns at(idx)
@@ -466,15 +466,15 @@ Markdown = Object clone {
   // the other rules (held as placeholders while the rest is processed).
   _inline(s) {
     codes = Array new()
-    text = self _extractCode(s, codes)
-    result = self _escape(text)
-    result = self _replaceImages(result)
-    result = self _replaceLinks(result)
-    result = self _replacePair(result, "**", "<strong>", "</strong>")
-    result = self _replacePair(result, "*", "<em>", "</em>")
+    text = _extractCode(s, codes)
+    result = _escape(text)
+    result = _replaceImages(result)
+    result = _replaceLinks(result)
+    result = _replacePair(result, "**", "<strong>", "</strong>")
+    result = _replacePair(result, "*", "<em>", "</em>")
     idx = 0
     { idx < codes size } whileTrue {
-      result = result replace(self _codeMark(idx), "<code>" + (codes at(idx)) + "</code>")
+      result = result replace(_codeMark(idx), "<code>" + (codes at(idx)) + "</code>")
       idx = idx + 1
     }
     result
@@ -502,8 +502,8 @@ Markdown = Object clone {
           (inner length >= 2 && (inner startsWith(" ")) && (inner endsWith(" "))) ifTrue {
             inner = inner slice(1, inner length - 1)
           }
-          out = out + (self _codeMark(codes size))
-          codes push(self _escape(inner))
+          out = out + (_codeMark(codes size))
+          codes push(_escape(inner))
           idx = idx + ticks + close + ticks
         } ifFalse {
           out = out + fence
@@ -537,9 +537,9 @@ Markdown = Object clone {
   }
 
   _codeBlock(codeLines, lang) {
-    body = self _escape(codeLines join("\n"))
+    body = _escape(codeLines join("\n"))
     (lang length > 0) ifTrue {
-      return "<pre><code class=\"language-" + (self _escape(lang)) + "\">" + body + "</code></pre>"
+      return "<pre><code class=\"language-" + (_escape(lang)) + "\">" + body + "</code></pre>"
     }
     "<pre><code>" + body + "</code></pre>"
   }
@@ -566,8 +566,8 @@ Markdown = Object clone {
   renderPage(md, title = "") {
     "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n" +
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
-    "<title>" + (self _escape(title)) + "</title>\n<style>\n" + pageStyle + "</style>\n</head>\n" +
-    "<body>\n" + (self render(md)) + "\n</body>\n</html>\n"
+    "<title>" + (_escape(title)) + "</title>\n<style>\n" + pageStyle + "</style>\n</head>\n" +
+    "<body>\n" + (render(md)) + "\n</body>\n</html>\n"
   }
 
   pageStyle = "body { max-width: 52em; margin: 2em auto; padding: 0 1em; font: 16px/1.55 -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; color: #1f2328; }\n" +

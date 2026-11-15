@@ -49,10 +49,10 @@ JobQueue = Object clone {
     rows at(0) get("cnt")
   }
 
-  pending()    { self _count(" WHERE status = 'pending'") }
-  processing() { self _count(" WHERE status = 'processing'") }
-  failed()     { self _count(" WHERE status = 'failed'") }
-  size()       { self _count("") }
+  pending()    { _count(" WHERE status = 'pending'") }
+  processing() { _count(" WHERE status = 'processing'") }
+  failed()     { _count(" WHERE status = 'failed'") }
+  size()       { _count("") }
 
   retry() {
     now = Date now() toString()

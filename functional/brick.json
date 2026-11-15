@@ -1,6 +1,7 @@
 {
     "name": "stdlib/functional",
     "version": "0.1.0",
+    "clay": ">=0.3.3",
     "description": "Functional programming utilities for Clay",
     "main": "src/main.clay",
     "deps": {}

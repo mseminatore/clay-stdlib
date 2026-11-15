@@ -26,12 +26,12 @@ Csv = Object clone {
         _src = str
         _pos = 0
         _len = str length()
-        self _parseRows([])
+        _parseRows([])
     }
 
     _parseRows(rows) {
         { _pos < _len } whileTrue {
-            rows append(self _parseRow([]))
+            rows append(_parseRow([]))
         }
         rows
     }
@@ -103,17 +103,17 @@ Csv = Object clone {
     }
 
     parseWithHeader(str) {
-        self _parseWithHdr(self parse(str))
+        _parseWithHdr(parse(str))
     }
 
     _parseWithHdr(rows) {
         (rows size() == 0) ifTrue { [] }
-        self _mapRows(rows at(0), rows, 1, [])
+        _mapRows(rows at(0), rows, 1, [])
     }
 
     _mapRows(headers, rows, idx, result) {
         { idx < rows size() } whileTrue {
-            self _makeDict(headers, rows at(idx), result)
+            _makeDict(headers, rows at(idx), result)
             idx = idx + 1
         }
         result
@@ -130,12 +130,12 @@ Csv = Object clone {
     }
 
     stringify(rows) {
-        self _stringifyRows(rows, [], 0)
+        _stringifyRows(rows, [], 0)
     }
 
     _stringifyRows(rows, parts, idx) {
         { idx < rows size() } whileTrue {
-            self _stringifyRow(rows at(idx), parts)
+            _stringifyRow(rows at(idx), parts)
             idx = idx + 1
         }
         parts join("\n")
@@ -144,7 +144,7 @@ Csv = Object clone {
     _stringifyRow(row, parts) {
         _cols = []
         row each { |field|
-            _cols append(self _encodeField(field))
+            _cols append(_encodeField(field))
         }
         parts append(_cols join(","))
     }

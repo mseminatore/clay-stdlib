@@ -39,7 +39,7 @@ Url = Object clone {
 
     // Check if character is unreserved (RFC 3986)
     _isUnreserved(ch) {
-        code = self _ord(ch)
+        code = _ord(ch)
         // A-Z: 65-90, a-z: 97-122, 0-9: 48-57, '-': 45, '.': 46, '_': 95, '~': 126
         result = false
         (code >= 65 && code <= 90) ifTrue { result = true }
@@ -57,10 +57,10 @@ Url = Object clone {
         len = str length()
         { i < len } whileTrue {
             ch = str at(i)
-            (self _isUnreserved(ch)) ifTrue {
+            (_isUnreserved(ch)) ifTrue {
                 result = result + ch
             } ifFalse {
-                code = self _ord(ch)
+                code = _ord(ch)
                 hi = code / 16
                 lo = code % 16
                 result = result + "%" + hex at(hi) + hex at(lo)
@@ -78,8 +78,8 @@ Url = Object clone {
         { i < len } whileTrue {
             ch = str at(i)
             (ch == "%" && i + 2 < len) ifTrue {
-                hi = self _hexVal(str at(i + 1))
-                lo = self _hexVal(str at(i + 2))
+                hi = _hexVal(str at(i + 1))
+                lo = _hexVal(str at(i + 2))
                 result = result + "" chr(hi * 16 + lo)
                 i = i + 3
             } ifFalse {
@@ -186,12 +186,12 @@ Url = Object clone {
         pairs each { |pair|
             eqIdx = pair indexOf("=")
             (eqIdx != -1) ifTrue {
-                key = self decodeComponent(pair slice(0, eqIdx))
-                val = self decodeComponent(pair slice(eqIdx + 1, pair length()))
+                key = decodeComponent(pair slice(0, eqIdx))
+                val = decodeComponent(pair slice(eqIdx + 1, pair length()))
                 result set(key, val)
             } ifFalse {
                 (pair length() > 0) ifTrue {
-                    result set(self decodeComponent(pair), "")
+                    result set(decodeComponent(pair), "")
                 }
             }
         }

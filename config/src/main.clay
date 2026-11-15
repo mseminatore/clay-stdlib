@@ -68,7 +68,7 @@ Config = Object clone {
     // Parse a config file by path
     parseFile(path) {
         content = File read(path)
-        self parse(content)
+        parse(content)
     }
 
     // Get a value from a parsed config with a default

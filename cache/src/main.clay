@@ -56,7 +56,7 @@ Cache = Object clone {
     (self _store has(k)) ifTrue {
       self _store set(k, v)
       self _times set(k, System clock())
-      self _touch(k)
+      _touch(k)
     } ifFalse {
       ((self _maxSize > 0) && (self _store size() >= self _maxSize)) ifTrue {
         self _evict()
@@ -70,11 +70,11 @@ Cache = Object clone {
 
   get(k) {
     (self _store has(k)) ifTrue {
-      (self _isExpired(k)) ifTrue {
-        self remove(k)
+      (_isExpired(k)) ifTrue {
+        remove(k)
         nil
       } ifFalse {
-        self _touch(k)
+        _touch(k)
         self _store get(k)
       }
     } ifFalse {
@@ -84,8 +84,8 @@ Cache = Object clone {
 
   has(k) {
     (self _store has(k)) ifTrue {
-      (self _isExpired(k)) ifTrue {
-        self remove(k)
+      (_isExpired(k)) ifTrue {
+        remove(k)
         false
       } ifFalse {
         true

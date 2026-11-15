@@ -1,6 +1,7 @@
 {
     "name": "stdlib/json",
     "version": "0.1.0",
+    "clay": ">=0.3.3",
     "description": "JSON parsing and serialization for Clay",
     "main": "src/main.clay",
     "deps": {}

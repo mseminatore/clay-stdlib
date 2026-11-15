@@ -24,7 +24,7 @@ Template = Object clone {
 
     renderEach(tmpl, items, sep) {
         results = items map { |item|
-            self render(tmpl, item)
+            render(tmpl, item)
         }
         results join(sep ?? "")
     }

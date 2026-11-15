@@ -1,6 +1,7 @@
 {
   "name": "stdlib/base64",
   "version": "0.1.0",
+  "clay": ">=0.3.3",
   "description": "Base64 encoding and decoding",
   "main": "src/main.clay",
   "deps": {}

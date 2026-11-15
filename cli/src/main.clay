@@ -12,31 +12,31 @@ Cli = Object clone {
     }
 
     // Foreground colors
-    red(s)     { self _wrap("31", s) }
-    green(s)   { self _wrap("32", s) }
-    yellow(s)  { self _wrap("33", s) }
-    blue(s)    { self _wrap("34", s) }
-    magenta(s) { self _wrap("35", s) }
-    cyan(s)    { self _wrap("36", s) }
-    white(s)   { self _wrap("37", s) }
+    red(s)     { _wrap("31", s) }
+    green(s)   { _wrap("32", s) }
+    yellow(s)  { _wrap("33", s) }
+    blue(s)    { _wrap("34", s) }
+    magenta(s) { _wrap("35", s) }
+    cyan(s)    { _wrap("36", s) }
+    white(s)   { _wrap("37", s) }
 
     // Background colors
-    bgRed(s)    { self _wrap("41", s) }
-    bgGreen(s)  { self _wrap("42", s) }
-    bgYellow(s) { self _wrap("43", s) }
-    bgBlue(s)   { self _wrap("44", s) }
+    bgRed(s)    { _wrap("41", s) }
+    bgGreen(s)  { _wrap("42", s) }
+    bgYellow(s) { _wrap("43", s) }
+    bgBlue(s)   { _wrap("44", s) }
 
     // Styles
-    bold(s)      { self _wrap("1", s) }
-    dim(s)       { self _wrap("2", s) }
-    italic(s)    { self _wrap("3", s) }
-    underline(s) { self _wrap("4", s) }
+    bold(s)      { _wrap("1", s) }
+    dim(s)       { _wrap("2", s) }
+    italic(s)    { _wrap("3", s) }
+    underline(s) { _wrap("4", s) }
 
     // Custom ANSI foreground color code (e.g., 33 for yellow)
-    color(s, code) { self _wrap(code toString(), s) }
+    color(s, code) { _wrap(code toString(), s) }
 
     // Custom ANSI background color code (e.g., 41 for red bg)
-    bg(s, code) { self _wrap(code toString(), s) }
+    bg(s, code) { _wrap(code toString(), s) }
 
     // Strip ANSI escape sequences from a string
     // State machine: skip from ESC until 'm' is found
@@ -64,7 +64,7 @@ Cli = Object clone {
     }
 
     // Convenience methods
-    success(s) { self bold(self green(s)) }
-    warning(s) { self bold(self yellow(s)) }
-    error(s)   { self bold(self red(s)) }
+    success(s) { bold(green(s)) }
+    warning(s) { bold(yellow(s)) }
+    error(s)   { bold(red(s)) }
 }

@@ -23,7 +23,7 @@ Json = Object clone {
     // --- Stringify ---
 
     stringify(val) {
-        self _encode(val)
+        _encode(val)
     }
 
     _encode(val) {
@@ -31,9 +31,9 @@ Json = Object clone {
         (t == "Nil") ifTrue { _result = "null" }
         (t == "Number") ifTrue { _result = val toString() }
         (t == "Boolean") ifTrue { _result = val toString() }
-        (t == "String") ifTrue { _result = self _encodeString(val) }
-        (t == "Array") ifTrue { _result = self _encodeArray(val) }
-        (t == "Dict") ifTrue { _result = self _encodeDict(val) }
+        (t == "String") ifTrue { _result = _encodeString(val) }
+        (t == "Array") ifTrue { _result = _encodeArray(val) }
+        (t == "Dict") ifTrue { _result = _encodeDict(val) }
         _result
     }
 
@@ -46,7 +46,7 @@ Json = Object clone {
     _encodeArray(arr) {
         parts = []
         arr each { |item|
-            parts append(self _encode(item))
+            parts append(_encode(item))
         }
         "[" + parts join(", ") + "]"
     }
@@ -54,7 +54,7 @@ Json = Object clone {
     _encodeDict(dict) {
         parts = []
         dict keys() each { |k|
-            parts append(self _encodeString(k) + ": " + self _encode(dict get(k)))
+            parts append(_encodeString(k) + ": " + _encode(dict get(k)))
         }
         "{" + parts join(", ") + "}"
     }
@@ -62,14 +62,14 @@ Json = Object clone {
     // --- Pretty print ---
 
     prettyPrint(val) {
-        self _pretty(val, 0)
+        _pretty(val, 0)
     }
 
     _pretty(val, depth) {
         t = val type()
-        _result = self _encode(val)
-        (t == "Dict") ifTrue { _result = self _prettyDict(val, depth) }
-        (t == "Array") ifTrue { _result = self _prettyArray(val, depth) }
+        _result = _encode(val)
+        (t == "Dict") ifTrue { _result = _prettyDict(val, depth) }
+        (t == "Array") ifTrue { _result = _prettyArray(val, depth) }
         _result
     }
 
@@ -88,11 +88,11 @@ Json = Object clone {
         result = "{}"
         (keys size() > 0) ifTrue {
             parts = []
-            pad = self _indent(depth + 1)
+            pad = _indent(depth + 1)
             keys each { |k|
-                parts append(pad + self _encodeString(k) + ": " + self _pretty(dict get(k), depth + 1))
+                parts append(pad + _encodeString(k) + ": " + _pretty(dict get(k), depth + 1))
             }
-            result = "{\n" + parts join(",\n") + "\n" + self _indent(depth) + "}"
+            result = "{\n" + parts join(",\n") + "\n" + _indent(depth) + "}"
         }
         result
     }
@@ -101,11 +101,11 @@ Json = Object clone {
         result = "[]"
         (arr size() > 0) ifTrue {
             parts = []
-            pad = self _indent(depth + 1)
+            pad = _indent(depth + 1)
             arr each { |item|
-                parts append(pad + self _pretty(item, depth + 1))
+                parts append(pad + _pretty(item, depth + 1))
             }
-            result = "[\n" + parts join(",\n") + "\n" + self _indent(depth) + "]"
+            result = "[\n" + parts join(",\n") + "\n" + _indent(depth) + "]"
         }
         result
     }
@@ -144,9 +144,9 @@ Json = Object clone {
         (_ch == "\"") ifTrue { _result = self _parseString() }
         (_ch == "{" && _result == nil) ifTrue { _result = self _parseObject() }
         (_ch == "[" && _result == nil) ifTrue { _result = self _parseArray() }
-        (_ch == "t" && _result == nil) ifTrue { _result = self _parseLiteral("true", true) }
-        (_ch == "f" && _result == nil) ifTrue { _result = self _parseLiteral("false", false) }
-        (_ch == "n" && _result == nil) ifTrue { _result = self _parseLiteral("null", nil) }
+        (_ch == "t" && _result == nil) ifTrue { _result = _parseLiteral("true", true) }
+        (_ch == "f" && _result == nil) ifTrue { _result = _parseLiteral("false", false) }
+        (_ch == "n" && _result == nil) ifTrue { _result = _parseLiteral("null", nil) }
         (("0123456789-" contains(_ch)) && _result == nil) ifTrue {
             _result = self _parseNumber()
         }
@@ -215,7 +215,7 @@ Json = Object clone {
 
     _parseArray() {
         self _advance()  // skip [
-        self _fillArray([])
+        _fillArray([])
     }
 
     _fillArray(arr) {
@@ -235,17 +235,17 @@ Json = Object clone {
 
     _parseObject() {
         self _advance()  // skip {
-        self _fillObject(Dict new())
+        _fillObject(Dict new())
     }
 
     _fillObject(dict) {
         self _skipWs()
         (self _peek() != "}") ifTrue {
-            self _addKV(dict)
+            _addKV(dict)
             self _skipWs()
             { self _peek() == "," } whileTrue {
                 self _advance()  // skip ,
-                self _addKV(dict)
+                _addKV(dict)
                 self _skipWs()
             }
         }
@@ -255,7 +255,7 @@ Json = Object clone {
 
     _addKV(dict) {
         self _skipWs()
-        self _setKV(dict, self _parseString())
+        _setKV(dict, self _parseString())
     }
 
     _setKV(dict, key) {

@@ -42,7 +42,7 @@ Emitter = Object clone {
     emitWith(event, data) {
         key = event toString()
         _handlers has(key) ifTrue {
-            _handlers get(key) each { |h| h value(data) }
+            _handlers get(key) each { |h| h(data) }
         }
         self
     }
@@ -53,8 +53,8 @@ Emitter = Object clone {
             _handlers set(key, [])
         }
         wrapper = { |data|
-            handler value(data)
-            self off(event)
+            handler(data)
+            off(event)
         }
         _handlers get(key) append(wrapper)
         self

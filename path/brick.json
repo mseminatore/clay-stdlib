@@ -1,6 +1,7 @@
 {
     "name": "stdlib/path",
     "version": "0.1.0",
+    "clay": ">=0.3.3",
     "description": "Path manipulation utilities for Clay",
     "main": "src/main.clay",
     "deps": {}

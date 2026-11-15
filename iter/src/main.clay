@@ -75,7 +75,7 @@ Iter = Object clone {
     }
 
     toArray() {
-        self _evaluate([])
+        _evaluate([])
     }
 
     _evaluate(result) {
@@ -86,13 +86,13 @@ Iter = Object clone {
             _arg = op at(1)
             (_type == "map") ifTrue {
                 _next = []
-                _src each { |item| _next append(_arg value(item)) }
+                _src each { |item| _next append(_arg(item)) }
                 _src = _next
             }
             (_type == "filter") ifTrue {
                 _next = []
                 _src each { |item|
-                    (_arg value(item) == true) ifTrue { _next append(item) }
+                    (_arg(item) == true) ifTrue { _next append(item) }
                 }
                 _src = _next
             }
@@ -122,7 +122,7 @@ Iter = Object clone {
     reduce(init, fn) {
         _acc = init
         self toArray() each { |item|
-            _acc = fn value(_acc, item)
+            _acc = fn(_acc, item)
         }
         _acc
     }
@@ -132,7 +132,7 @@ Iter = Object clone {
     }
 
     first() {
-        self _firstOf(self take(1) toArray())
+        _firstOf(take(1) toArray())
     }
 
     _firstOf(arr) {

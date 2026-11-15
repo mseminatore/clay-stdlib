@@ -24,7 +24,7 @@ Match = Object clone {
         (_matched == false) ifTrue {
             (_val == pattern) ifTrue {
                 _matched = true
-                _result = block value(_val)
+                _result = block(_val)
             }
         }
         self
@@ -34,7 +34,7 @@ Match = Object clone {
         (_matched == false) ifTrue {
             (_val type() == typeName) ifTrue {
                 _matched = true
-                _result = block value(_val)
+                _result = block(_val)
             }
         }
         self
@@ -42,9 +42,9 @@ Match = Object clone {
 
     whenPred(pred, block) {
         (_matched == false) ifTrue {
-            (pred value(_val) == true) ifTrue {
+            (pred(_val) == true) ifTrue {
                 _matched = true
-                _result = block value(_val)
+                _result = block(_val)
             }
         }
         self
@@ -53,7 +53,7 @@ Match = Object clone {
     else(block) {
         (_matched == false) ifTrue {
             _matched = true
-            _result = block value(_val)
+            _result = block(_val)
         }
         _result
     }
