@@ -3,19 +3,26 @@
 // Usage:
 //   import("stdlib/test")
 //
-//   Test describe("Math", {
-//       Test it("adds numbers", {
+//   Test describe("Math") {
+//       Test it("adds numbers") {
 //           Test assertEqual(1 + 1, 2)
-//       })
-//   })
+//       }
+//       Test it("raises on a bad argument") {
+//           Test assertRaises({ 1 / 0 }, "DivisionByZero")
+//       }
+//   }
 //
-//   Test run()
+//   Test run    // prints the summary; exits with status 1 if any test failed
+//
+// Color is used only when output goes to a terminal and NO_COLOR is not set.
 
 Test = Object clone {
     _passed = 0
     _failed = 0
-    _errors = ""
+    _failures = []
     _suite = ""
+    _depth = 0
+    _color = nil
     _green = "\x1b[32m"
     _red = "\x1b[91m"
     _bold = "\x1b[1m"
@@ -23,85 +30,113 @@ Test = Object clone {
     _dim = "\x1b[2m"
     _reset = "\x1b[0m"
 
+    // Group tests under a name; groups can be nested
     describe(name, block) {
-        _suite = name
-        (_bold + _cyan + "  " + name + _reset) println()
-        block value()
-        _suite = ""
+        outer = _suite
+        _suite = (outer == "") ifTrue { name } ifFalse { outer + " > " + name }
+        (self _indent + self _paint(_bold + _cyan, name)) println
+        _depth = _depth + 1
+        err = try { block(); nil } catch { |e| e }
+        _depth = _depth - 1
+        (err != nil) ifTrue { self _fail("(outside a test)", err) }
+        _suite = outer
         self
     }
 
+    // One test: it passes unless the block raises (a failed assert raises)
     it(name, block) {
-        result = try {
-            block value()
-            "pass"
-        } catch { |e|
-            self _failed += 1
-            _errors = _errors + "    " + _red + "FAIL: " + _suite + " > " + name + " - " + e message() + _reset + "\n"
-            "fail"
-        }
-        (result == "pass") ifTrue {
-            self _passed += 1
-            ("    " + _green + "✓" + _reset + _dim + " " + name + _reset) println()
-        }
-        (result == "fail") ifTrue {
-            ("    " + _red + "✗ " + name + _reset) println()
+        err = try { block(); nil } catch { |e| e }
+        (err == nil) ifTrue {
+            _passed = _passed + 1
+            (self _indent + self _paint(_green, "✓") + " " + self _paint(_dim, name)) println
+        } ifFalse {
+            (self _indent + self _paint(_red, "✗ " + name)) println
+            self _fail(name, err)
         }
         self
     }
 
     assertEqual(actual, expected) {
         (actual == expected) ifFalse {
-            raise("expected " + expected + " but got " + actual)
+            raise("expected " + self _show(expected) + " but got " + self _show(actual))
         }
         self
     }
 
     assertNotEqual(actual, expected) {
         (actual == expected) ifTrue {
-            raise("expected values to differ but both are " + actual)
+            raise("expected values to differ but both are " + self _show(actual))
         }
         self
     }
 
+    // Exactly true: nil, numbers and strings do not count
     assertTrue(value) {
-        (value == false) ifTrue {
-            raise("expected true but got false")
-        }
+        (value == true) ifFalse { raise("expected true but got " + self _show(value)) }
         self
     }
 
+    // Exactly false: nil does not count
     assertFalse(value) {
-        (value == true) ifTrue {
-            raise("expected false but got true")
-        }
+        (value == false) ifFalse { raise("expected false but got " + self _show(value)) }
         self
     }
 
-    assertRaises(block) {
-        caught = try {
-            block value()
-            "no error"
-        } catch { |e|
-            "caught"
+    // The block must raise; with errorType, an error of that type. Returns
+    // the error, so a test can check its message.
+    assertRaises(block, errorType = nil) {
+        err = try { block(); nil } catch { |e| e }
+        (err == nil) ifTrue { raise("expected an error but none was raised") }
+        ((errorType != nil) && (err type != errorType)) ifTrue {
+            raise("expected " + errorType + " but got " + err type + ": " + self _message(err))
         }
-        (caught == "no error") ifTrue {
-            raise("expected an error but none was raised")
-        }
-        self
+        err
     }
 
+    // Print the summary; exit with status 1 if any test failed, so CI and
+    // test runners see the failure
     run() {
-        "" println()
+        "" println
         total = _passed + _failed
-        color = _green
-        (_failed > 0) ifTrue { color = _red }
-        (color + "" + total + " tests, " + _passed + " passed, " + _failed + " failed" + _reset) println()
+        noun = (total == 1) ifTrue { " test, " } ifFalse { " tests, " }
+        summary = total toString + noun + _passed toString + " passed, " + _failed toString + " failed"
+        (self _paint((_failed > 0) ifTrue { _red } ifFalse { _green }, summary)) println
         (_failed > 0) ifTrue {
-            "" println()
-            (_red + "Failures:" + _reset) println()
-            _errors print()
+            "" println
+            (self _paint(_red, "Failures:")) println
+            _failures each { |f| ("    " + self _paint(_red, "FAIL: " + f)) println }
+            System exit(1)
         }
         self
+    }
+
+    _fail(name, err) {
+        _failed = _failed + 1
+        where = (_suite == "") ifTrue { name } ifFalse { _suite + " > " + name }
+        _failures push(where + " - " + self _message(err))
+    }
+
+    _message(err) {
+        (err type == "String") ifTrue { return err }
+        err message
+    }
+
+    _show(v) {
+        (v type == "String") ifTrue { return "\"" + v + "\"" }
+        v toString
+    }
+
+    _indent() { "  " repeat(_depth + 1) }
+
+    _useColor() {
+        (_color == nil) ifTrue {
+            noColor = System env("NO_COLOR")
+            _color = ((noColor == nil) || (noColor == "")) && Console isTerminal
+        }
+        _color
+    }
+
+    _paint(code, text) {
+        self _useColor ifTrue { code + text + _reset } ifFalse { text }
     }
 }
