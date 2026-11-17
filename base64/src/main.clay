@@ -5,100 +5,108 @@
 //
 //   Base64 encode("Hello, World!")   // "SGVsbG8sIFdvcmxkIQ=="
 //   Base64 decode("SGVsbG8sIFdvcmxkIQ==")   // "Hello, World!"
+//
+// Strings are bytes, so any data round-trips: text in any encoding, or
+// binary such as `String fromBytes([0, 200, 255])`. Both directions build
+// an Array of byte values and make the string once, so they take linear time.
 
 Base64 = Object clone {
     _chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-    _ordMap = nil
+    _codes = nil     // the alphabet's byte values (index -> byte)
+    _values = nil    // byte -> 6-bit value, -1 if not in the alphabet
 
-    // Build char -> ASCII code lookup (lazy, once)
-    _ensureOrdMap() {
-        (_ordMap == nil) ifTrue {
-            _ordMap = Dict new()
+    _tables() {
+        (_codes == nil) ifTrue {
+            _codes = _chars bytes
+            values = []
+            256 times { values push(-1) }
             i = 0
-            { i < 128 } whileTrue {
-                ch = "" chr(i)
-                _ordMap set(ch, i)
+            { i < 64 } whileTrue {
+                values setAt(_codes at(i), i)
                 i = i + 1
             }
+            _values = values
         }
     }
 
-    // Get ASCII code of a single character
-    _ord(ch) {
-        self _ensureOrdMap()
-        _ordMap get(ch)
-    }
-
-    // Encode a string to Base64
+    // Encode a string (any bytes) to Base64
     encode(str) {
-        chars = _chars
-        len = str length()
-        result = ""
+        (str type == "String") ifFalse { raise("Base64 encode: expected a String") }
+        self _tables()
+        codes = _codes
+        b = str bytes
+        n = b size
+        out = []
         i = 0
-
-        { i < len } whileTrue {
-            // Read up to 3 bytes
-            b0 = _ord(str at(i))
-            b1 = (i + 1 < len) ifTrue { _ord(str at(i + 1)) } ifFalse { 0 }
-            b2 = (i + 2 < len) ifTrue { _ord(str at(i + 2)) } ifFalse { 0 }
-
-            // Encode to 4 base64 chars
-            result = result + chars at(b0 / 4)
-            result = result + chars at((b0 % 4) * 16 + b1 / 16)
-
-            (i + 1 < len) ifTrue {
-                result = result + chars at((b1 % 16) * 4 + b2 / 64)
-            } ifFalse {
-                result = result + "="
-            }
-
-            (i + 2 < len) ifTrue {
-                result = result + chars at(b2 % 64)
-            } ifFalse {
-                result = result + "="
-            }
-
+        { i + 2 < n } whileTrue {
+            v = ((b at(i)) << 16) | ((b at(i + 1)) << 8) | (b at(i + 2))
+            out push(codes at(v >> 18))
+            out push(codes at((v >> 12) & 63))
+            out push(codes at((v >> 6) & 63))
+            out push(codes at(v & 63))
             i = i + 3
         }
-
-        result
+        rest = n - i
+        (rest > 0) ifTrue {
+            v = (b at(i)) << 16
+            (rest == 2) ifTrue { v = v | ((b at(i + 1)) << 8) }
+            out push(codes at(v >> 18))
+            out push(codes at((v >> 12) & 63))
+            out push((rest == 2) ifTrue { codes at((v >> 6) & 63) } ifFalse { 61 })   // 61 is "="
+            out push(61)
+        }
+        String fromBytes(out)
     }
 
-    // Decode a Base64 string
+    // Decode a Base64 string. Whitespace (line breaks) is skipped and the
+    // "=" padding may be left out; any other character outside the alphabet,
+    // misplaced padding, or a truncated group raises.
     decode(str) {
-        chars = _chars
-        len = str length()
-        result = ""
+        (str type == "String") ifFalse { raise("Base64 decode: expected a String") }
+        self _tables()
+        values = _values
+        s = str
+        [" ", "\n", "\r", "\t"] each { |w| (s contains(w)) ifTrue { s = s replace(w, "") } }
+        full = s length
+        (s endsWith("==")) ifTrue { s = s slice(0, full - 2) } ifFalse {
+            (s endsWith("=")) ifTrue { s = s slice(0, full - 1) }
+        }
+        pad = full - s length
+        (s contains("=")) ifTrue { raise("Base64 decode: misplaced padding") }
+        rest = (s length) % 4
+        (rest == 1) ifTrue { raise("Base64 decode: truncated input") }
+        b = s bytes
+        n = b size - rest
+        out = []
         i = 0
-
-        { i < len } whileTrue {
-            c0 = chars indexOf(str at(i))
-            c1 = (i + 1 < len) ifTrue { chars indexOf(str at(i + 1)) } ifFalse { 0 }
-            c2 = (i + 2 < len) ifTrue {
-                (str at(i + 2) == "=") ifTrue { 0 } ifFalse { chars indexOf(str at(i + 2)) }
-            } ifFalse { 0 }
-            c3 = (i + 3 < len) ifTrue {
-                (str at(i + 3) == "=") ifTrue { 0 } ifFalse { chars indexOf(str at(i + 3)) }
-            } ifFalse { 0 }
-
-            // Decode 4 base64 chars to 3 bytes
-            result = result + "" chr(c0 * 4 + c1 / 16)
-
-            (i + 2 < len) ifTrue {
-                (str at(i + 2) != "=") ifTrue {
-                    result = result + "" chr((c1 % 16) * 16 + c2 / 4)
-                }
-            }
-
-            (i + 3 < len) ifTrue {
-                (str at(i + 3) != "=") ifTrue {
-                    result = result + "" chr((c2 % 4) * 64 + c3)
-                }
-            }
-
+        { i < n } whileTrue {
+            c0 = values at(b at(i))
+            c1 = values at(b at(i + 1))
+            c2 = values at(b at(i + 2))
+            c3 = values at(b at(i + 3))
+            ((c0 | c1 | c2 | c3) < 0) ifTrue { self _invalid(s) }
+            v = (c0 << 18) | (c1 << 12) | (c2 << 6) | c3
+            out push(v >> 16)
+            out push((v >> 8) & 255)
+            out push(v & 255)
             i = i + 4
         }
+        (rest > 0) ifTrue {
+            c0 = values at(b at(i))
+            c1 = values at(b at(i + 1))
+            c2 = (rest == 3) ifTrue { values at(b at(i + 2)) } ifFalse { 0 }
+            ((c0 | c1 | c2) < 0) ifTrue { self _invalid(s) }
+            v = (c0 << 18) | (c1 << 12) | (c2 << 6)
+            out push(v >> 16)
+            (rest == 3) ifTrue { out push((v >> 8) & 255) }
+        }
+        ((pad > 0) && ((full % 4) != 0)) ifTrue { raise("Base64 decode: bad padding") }
+        String fromBytes(out)
+    }
 
-        result
+    _invalid(s) {
+        i = 0
+        { (_values at(s byteAt(i))) >= 0 } whileTrue { i = i + 1 }
+        raise("Base64 decode: invalid character " + (String fromBytes([s byteAt(i)])) + " at offset " + i toString)
     }
 }
