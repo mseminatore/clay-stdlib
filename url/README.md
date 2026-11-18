@@ -45,7 +45,13 @@ params get("version")   // "1"
 ```clay
 Url encodeComponent("hello world&foo=bar")   // "hello%20world%26foo%3Dbar"
 Url decodeComponent("hello%20world")          // "hello world"
+Url encodeComponent("café")                   // "caf%C3%A9" (each UTF-8 byte)
+Url decodeComponent("caf%C3%A9")              // "café"
 ```
+
+Encoding escapes every byte except the unreserved `A-Z a-z 0-9 - . _ ~`, so
+text in any language (or binary data) round-trips. Decoding turns `+` into a
+space and keeps a `%` that isn't followed by two hex digits as it is.
 
 ## Methods
 

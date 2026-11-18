@@ -17,88 +17,59 @@
 //   Url decodeComponent("hello%20world")  // "hello world"
 
 Url = Object clone {
-    _ordMap = nil
     _hexChars = "0123456789ABCDEF"
 
-    _ensureOrdMap() {
-        (_ordMap == nil) ifTrue {
-            _ordMap = Dict new()
-            i = 0
-            { i < 128 } whileTrue {
-                ch = "" chr(i)
-                _ordMap set(ch, i)
-                i = i + 1
-            }
-        }
+    // Is a byte unreserved (RFC 3986): A-Z, a-z, 0-9, "-", ".", "_", "~"
+    _isUnreserved(b) {
+        ((b >= 65) && (b <= 90)) || ((b >= 97) && (b <= 122)) || ((b >= 48) && (b <= 57)) ||
+            (b == 45) || (b == 46) || (b == 95) || (b == 126)
     }
 
-    _ord(ch) {
-        self _ensureOrdMap()
-        _ordMap get(ch)
-    }
-
-    // Check if character is unreserved (RFC 3986)
-    _isUnreserved(ch) {
-        code = _ord(ch)
-        // A-Z: 65-90, a-z: 97-122, 0-9: 48-57, '-': 45, '.': 46, '_': 95, '~': 126
-        result = false
-        (code >= 65 && code <= 90) ifTrue { result = true }
-        (code >= 97 && code <= 122) ifTrue { result = true }
-        (code >= 48 && code <= 57) ifTrue { result = true }
-        (ch == "-" || ch == "." || ch == "_" || ch == "~") ifTrue { result = true }
-        result
-    }
-
-    // Percent-encode a component
+    // Percent-encode a component: every byte but the unreserved ones, so
+    // UTF-8 text becomes one %XX per byte ("é" -> "%C3%A9")
     encodeComponent(str) {
-        hex = _hexChars
-        result = ""
-        i = 0
-        len = str length()
-        { i < len } whileTrue {
-            ch = str at(i)
-            (_isUnreserved(ch)) ifTrue {
-                result = result + ch
-            } ifFalse {
-                code = _ord(ch)
-                hi = code / 16
-                lo = code % 16
-                result = result + "%" + hex at(hi) + hex at(lo)
+        hex = _hexChars bytes
+        out = []
+        str toString bytes each { |b|
+            (_isUnreserved(b)) ifTrue { out push(b) } ifFalse {
+                out push(37)   // "%"
+                out push(hex at(b >> 4))
+                out push(hex at(b & 15))
             }
-            i = i + 1
         }
-        result
+        String fromBytes(out)
     }
 
-    // Decode percent-encoded string
+    // Decode a percent-encoded component ("+" is a space). A "%" not followed
+    // by two hex digits is kept as it is.
     decodeComponent(str) {
-        result = ""
+        b = str toString bytes
+        n = b size
+        out = []
         i = 0
-        len = str length()
-        { i < len } whileTrue {
-            ch = str at(i)
-            (ch == "%" && i + 2 < len) ifTrue {
-                hi = _hexVal(str at(i + 1))
-                lo = _hexVal(str at(i + 2))
-                result = result + "" chr(hi * 16 + lo)
+        { i < n } whileTrue {
+            c = b at(i)
+            escaped = (c == 37) && (i + 2 < n)
+            escaped ifTrue { escaped = ((_hexVal(b at(i + 1))) >= 0) && ((_hexVal(b at(i + 2))) >= 0) }
+            escaped ifTrue {
+                hi = _hexVal(b at(i + 1))
+                lo = _hexVal(b at(i + 2))
+                out push(hi * 16 + lo)
                 i = i + 3
             } ifFalse {
-                (ch == "+") ifTrue {
-                    result = result + " "
-                } ifFalse {
-                    result = result + ch
-                }
+                out push((c == 43) ifTrue { 32 } ifFalse { c })
                 i = i + 1
             }
         }
-        result
+        String fromBytes(out)
     }
 
-    _hexVal(ch) {
-        hex = "0123456789ABCDEFabcdef"
-        idx = hex indexOf(ch)
-        (idx == -1) ifTrue { idx = 0 }
-        (idx >= 16) ifTrue { idx - 6 } ifFalse { idx }
+    // A hex digit byte's value, or -1
+    _hexVal(c) {
+        ((c >= 48) && (c <= 57)) ifTrue { return c - 48 }
+        ((c >= 65) && (c <= 70)) ifTrue { return c - 55 }
+        ((c >= 97) && (c <= 102)) ifTrue { return c - 87 }
+        -1
     }
 
     // Parse a URL string into a Dict
